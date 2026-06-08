@@ -1,0 +1,81 @@
+"use client";
+
+import React from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { LogOut, User, ChevronDown } from "lucide-react";
+import { Menu, Transition } from "@headlessui/react";
+import clsx from "clsx";
+
+const roleLabels: Record<string, string> = {
+  Student: "Sinh viên",
+  Lecturer: "Giảng viên",
+  FacultyStaff: "Nhân viên khoa",
+  HeadOfDepartment: "Trưởng bộ môn",
+  Admin: "Quản trị viên",
+};
+
+export default function Header() {
+  const { user, logout } = useAuth();
+
+  const initials = user?.fullName
+    ?.split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "?";
+
+  return (
+    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6">
+      <div className="flex items-center gap-2 text-sm text-gray-500">
+        <span>{roleLabels[user?.role || ""] || user?.role}</span>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Menu as="div" className="relative">
+          <Menu.Button className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-gray-50">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-xs font-bold text-white">
+              {initials}
+            </div>
+            <div className="hidden text-left md:block">
+              <p className="font-medium text-gray-900">{user?.fullName || "User"}</p>
+              <p className="text-xs text-gray-500">{roleLabels[user?.role || ""]}</p>
+            </div>
+            <ChevronDown className="hidden h-4 w-4 text-gray-400 md:block" />
+          </Menu.Button>
+
+          <Transition
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
+          >
+            <Menu.Items className="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black/5 focus:outline-none">
+              <div className="border-b border-gray-100 px-4 py-3">
+                <p className="text-sm font-medium text-gray-900">{user?.fullName}</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+              </div>
+              <div className="p-1">
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={logout}
+                      className={clsx(
+                        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-red-600",
+                        active && "bg-red-50"
+                      )}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Đăng xuất
+                    </button>
+                  )}
+                </Menu.Item>
+              </div>
+            </Menu.Items>
+          </Transition>
+        </Menu>
+      </div>
+    </header>
+  );
+}
