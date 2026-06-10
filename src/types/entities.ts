@@ -128,13 +128,13 @@ export interface RegistrationPeriodResponse {
   maxStudentPerGroup: number;
 }
 
-// Progress Plan
+// Milestone
 export interface MilestoneResponse {
   id: string;
   title: string;
   deadline: string;
   requiredSubmission: boolean;
-  isCompleted?: boolean;
+  isCompleted: boolean;
 }
 
 export interface ProgressPlanResponse {

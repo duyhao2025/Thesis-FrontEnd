@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import DataTable from "@/components/ui/DataTable";
 import Button from "@/components/ui/Button";
@@ -12,7 +12,7 @@ import { PeriodicReportResponse, ReportType } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Plus, FileBarChart, Upload, AlertCircle } from "lucide-react";
+import { Plus, FileBarChart, Upload, AlertCircle, BookOpen } from "lucide-react";
 
 const reportTypeLabels: Record<ReportType, string> = {
   Weekly: "Báo cáo 5 phút",
@@ -28,20 +28,67 @@ export default function PeriodicReportsPage() {
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
 
+  const [topicId, setTopicId] = useState<string>("");
   const [form, setForm] = useState({
     topicId: "",
     reportType: "Monthly" as ReportType,
     fileUrl: "",
-    description: "",
   });
 
-  useEffect(() => {
-    setLoading(false);
+  // Auto-detect student's approved topic
+  const detectTopicId = useCallback(async () => {
+    try {
+      const res = await api.get("/topic-registrations/my");
+      const registrations = res.data || [];
+      const approved = registrations.find(
+        (r: { status: string }) =>
+          r.status === "Approved" || r.status === "APPROVED"
+      );
+      if (approved) {
+        setTopicId(approved.topicId);
+        setForm((f) => ({ ...f, topicId: approved.topicId }));
+      }
+    } catch {
+      // silently fail
+    }
   }, []);
+
+  // Load my reports
+  const loadReports = useCallback(
+    async (tid: string) => {
+      if (!tid) {
+        setReports([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await api.get(`/reports/topic/${tid}`);
+        setReports(res.data || []);
+      } catch {
+        setReports([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    detectTopicId();
+  }, [detectTopicId]);
+
+  useEffect(() => {
+    if (topicId) {
+      loadReports(topicId);
+    } else {
+      setLoading(false);
+    }
+  }, [topicId, loadReports]);
 
   const handleSubmit = async () => {
     if (!form.topicId) {
-      showToast("error", "Vui lòng nhập Topic ID");
+      showToast("error", "Không xác định được đề tài. Vui lòng đăng ký đề tài trước.");
       return;
     }
     setSubmitting(true);
@@ -53,7 +100,8 @@ export default function PeriodicReportsPage() {
       });
       showToast("success", "Nộp báo cáo thành công!");
       setShowModal(false);
-      setForm({ topicId: "", reportType: "Monthly", fileUrl: "", description: "" });
+      setForm({ topicId, reportType: "Monthly", fileUrl: "" });
+      loadReports(topicId);
     } catch {
       showToast("error", "Nộp báo cáo thất bại.");
     } finally {
@@ -66,7 +114,9 @@ export default function PeriodicReportsPage() {
       key: "reportType",
       header: "Loại báo cáo",
       render: (row: PeriodicReportResponse) => (
-        <span className="font-medium">{reportTypeLabels[row.reportType] || row.reportType}</span>
+        <span className="font-medium">
+          {reportTypeLabels[row.reportType] || row.reportType}
+        </span>
       ),
     },
     {
@@ -74,7 +124,9 @@ export default function PeriodicReportsPage() {
       header: "Ngày nộp",
       render: (row: PeriodicReportResponse) =>
         row.submittedAt
-          ? format(new Date(row.submittedAt), "dd/MM/yyyy HH:mm", { locale: vi })
+          ? format(new Date(row.submittedAt), "dd/MM/yyyy HH:mm", {
+              locale: vi,
+            })
           : "—",
     },
     {
@@ -98,7 +150,11 @@ export default function PeriodicReportsPage() {
       key: "lecturerFeedback",
       header: "Phản hồi",
       render: (row: PeriodicReportResponse) => (
-        <span className={row.lecturerFeedback ? "text-green-600" : "text-gray-400"}>
+        <span
+          className={
+            row.lecturerFeedback ? "text-green-600" : "text-gray-400"
+          }
+        >
           {row.lecturerFeedback || "Chưa có"}
         </span>
       ),
@@ -106,9 +162,12 @@ export default function PeriodicReportsPage() {
     {
       key: "score",
       header: "Điểm",
-      render: (row: PeriodicReportResponse) => (
-        row.score != null ? <span className="font-semibold text-blue-600">{row.score}/10</span> : "—"
-      ),
+      render: (row: PeriodicReportResponse) =>
+        row.score != null ? (
+          <span className="font-semibold text-blue-600">{row.score}/10</span>
+        ) : (
+          "—"
+        ),
     },
   ];
 
@@ -119,44 +178,73 @@ export default function PeriodicReportsPage() {
           <h1 className="text-xl font-bold text-gray-900">Báo cáo định kỳ</h1>
           <p className="text-sm text-gray-500">Nộp báo cáo tiến độ theo đợt</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus className="h-4 w-4" />
-          Nộp báo cáo
-        </Button>
+        {topicId && (
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="h-4 w-4" />
+            Nộp báo cáo
+          </Button>
+        )}
       </div>
 
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
-        <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
-        <div>
-          <p className="text-sm font-medium text-amber-800">Lưu ý</p>
-          <p className="mt-0.5 text-sm text-amber-700">
-            Bạn cần có đề tài được duyệt trước khi nộp báo cáo. Nếu chưa có đề tài, vui lòng đăng ký hoặc đề xuất đề tài.
+      {!topicId ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-16">
+          <BookOpen className="mb-3 h-12 w-12 text-gray-300" />
+          <p className="font-medium text-gray-600">Bạn chưa có đề tài được duyệt</p>
+          <p className="mt-1 text-sm text-gray-500">
+            Vui lòng đăng ký hoặc đề xuất đề tài trước
           </p>
         </div>
-      </div>
-
-      {reports.length === 0 && !loading ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-16">
-          <FileBarChart className="mb-3 h-12 w-12 text-gray-300" />
-          <p className="text-gray-500">Chưa có báo cáo nào</p>
-          <Button className="mt-4" size="sm" onClick={() => setShowModal(true)}>Nộp báo cáo đầu tiên</Button>
-        </div>
       ) : (
-        <DataTable columns={columns} data={reports} loading={loading} rowKey="id" />
+        <>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 flex items-start gap-3 p-4">
+            <AlertCircle className="h-5 w-5 flex-shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-amber-800">Lưu ý</p>
+              <p className="mt-0.5 text-sm text-amber-700">
+                Bạn cần có đề tài được duyệt trước khi nộp báo cáo.
+              </p>
+            </div>
+          </div>
+
+          {reports.length === 0 && !loading ? (
+            <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-16">
+              <FileBarChart className="mb-3 h-12 w-12 text-gray-300" />
+              <p className="text-gray-500">Chưa có báo cáo nào</p>
+              <Button
+                className="mt-4"
+                size="sm"
+                onClick={() => setShowModal(true)}
+              >
+                Nộp báo cáo đầu tiên
+              </Button>
+            </div>
+          ) : (
+            <DataTable
+              columns={columns}
+              data={reports}
+              loading={loading}
+              rowKey="id"
+            />
+          )}
+        </>
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Nộp báo cáo định kỳ" size="md">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Nộp báo cáo định kỳ"
+        size="md"
+      >
         <div className="space-y-4">
-          <Input
-            label="Topic ID của bạn *"
-            value={form.topicId}
-            onChange={(e) => setForm({ ...form, topicId: e.target.value })}
-            placeholder="Nhập ID đề tài đã được duyệt"
-          />
+          <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+            Đề tài: <span className="font-medium">{topicId}</span>
+          </div>
           <Select
             label="Loại báo cáo"
             value={form.reportType}
-            onChange={(e) => setForm({ ...form, reportType: e.target.value as ReportType })}
+            onChange={(e) =>
+              setForm({ ...form, reportType: e.target.value as ReportType })
+            }
             options={[
               { value: "Weekly", label: "Báo cáo 5 phút" },
               { value: "Monthly", label: "Báo cáo 1 tháng" },
@@ -171,15 +259,10 @@ export default function PeriodicReportsPage() {
             placeholder="https://... (Google Drive, Dropbox...)"
             helperText="Upload file báo cáo (PDF/Word) lên Google Drive và dán link vào đây"
           />
-          <Textarea
-            label="Mô tả tóm tắt"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Tóm tắt nội dung báo cáo..."
-            rows={3}
-          />
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
+            <Button variant="outline" onClick={() => setShowModal(false)}>
+              Hủy
+            </Button>
             <Button isLoading={submitting} onClick={handleSubmit}>
               <Upload className="h-4 w-4" />
               Nộp báo cáo

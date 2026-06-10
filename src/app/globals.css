@@ -3,6 +3,17 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Role theme defaults (Admin) */
+  --role-primary: #4f46e5;
+  --role-primary-hover: #4338ca;
+  --role-accent: #818cf8;
+  --role-sidebar-bg: #1e293b;
+  --role-sidebar-text: #e2e8f0;
+  --role-sidebar-active-bg: #334155;
+  --role-sidebar-active-text: #f8fafc;
+  --role-header-bg: #ffffff;
+  --role-card-border: #e2e8f0;
+  --role-card-header-border: #f1f5f9;
 }
 
 @theme inline {
@@ -19,8 +30,79 @@
   }
 }
 
+/* ============================================
+   ROLE-BASED THEMES
+   ============================================ */
+
+/* ADMIN: Dark slate + indigo — chuyên nghiệp, quản trị */
+[data-theme="Admin"] {
+  --role-primary: #4f46e5;
+  --role-primary-hover: #4338ca;
+  --role-accent: #818cf8;
+  --role-sidebar-bg: #1e293b;
+  --role-sidebar-text: #e2e8f0;
+  --role-sidebar-active-bg: #334155;
+  --role-sidebar-active-text: #f8fafc;
+  --role-header-bg: #ffffff;
+  --role-card-border: #e2e8f0;
+  --role-card-header-border: #f1f5f9;
+}
+
+/* LECTURER / HEAD OF DEPARTMENT: Teal + violet — sang trọng */
+[data-theme="Lecturer"],
+[data-theme="HeadOfDepartment"] {
+  --role-primary: #0d9488;
+  --role-primary-hover: #0f766e;
+  --role-accent: #5eead4;
+  --role-sidebar-bg: #1e1b4b;
+  --role-sidebar-text: #e0e7ff;
+  --role-sidebar-active-bg: #312e81;
+  --role-sidebar-active-text: #c7d2fe;
+  --role-header-bg: #ffffff;
+  --role-card-border: #e2e8f0;
+  --role-card-header-border: #f1f5f9;
+}
+
+/* FACULTY STAFF: Amber + slate — ấm áp, quản lý */
+[data-theme="FacultyStaff"] {
+  --role-primary: #d97706;
+  --role-primary-hover: #b45309;
+  --role-accent: #fcd34d;
+  --role-sidebar-bg: #292524;
+  --role-sidebar-text: #fafaf9;
+  --role-sidebar-active-bg: #44403c;
+  --role-sidebar-active-text: #fef3c7;
+  --role-header-bg: #ffffff;
+  --role-card-border: #e2e8f0;
+  --role-card-header-border: #f1f5f9;
+}
+
+/* STUDENT: Emerald + blue — năng động, trẻ trung */
+[data-theme="Student"] {
+  --role-primary: #059669;
+  --role-primary-hover: #047857;
+  --role-accent: #6ee7b7;
+  --role-sidebar-bg: #064e3b;
+  --role-sidebar-text: #d1fae5;
+  --role-sidebar-active-bg: #065f46;
+  --role-sidebar-active-text: #ecfdf5;
+  --role-header-bg: #ffffff;
+  --role-card-border: #e2e8f0;
+  --role-card-header-border: #f1f5f9;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Role-aware global classes */
+.role-primary { color: var(--role-primary); }
+.role-primary-bg { background-color: var(--role-primary); }
+.role-primary-hover:hover { background-color: var(--role-primary-hover); }
+.role-accent { color: var(--role-accent); }
+.role-sidebar-bg { background-color: var(--role-sidebar-bg); }
+.role-sidebar-text { color: var(--role-sidebar-text); }
+.role-sidebar-active-bg { background-color: var(--role-sidebar-active-bg); }
+.role-sidebar-active-text { color: var(--role-sidebar-active-text); }

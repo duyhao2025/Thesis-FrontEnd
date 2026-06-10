@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
-import { User, LoginRequest, LoginResponse } from "@/types/api";
+import { User, LoginRequest, LoginResponse, UserRole } from "@/types/api";
 
 interface AuthContextType {
   user: User | null;
@@ -29,7 +29,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (storedToken && storedUser) {
         setToken(storedToken);
         try {
-          setUser(JSON.parse(storedUser));
+          const parsed = JSON.parse(storedUser);
+          // Support both old nested format { user: {...} } and new flat format
+          if (parsed.user) {
+            // Old format
+            setUser(parsed.user);
+          } else {
+            // Normalize FullName (PascalCase from BE) to fullName (camelCase in interface)
+            setUser({
+              ...parsed,
+              fullName: parsed.fullName ?? parsed.FullName ?? parsed.name ?? "",
+            } as User);
+          }
         } catch {
           localStorage.removeItem("user");
         }
@@ -40,7 +51,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(async (data: LoginRequest) => {
     const response = await api.post<LoginResponse>("/auth/login", data);
-    const { accessToken, refreshToken, user: userData } = response.data;
+    const { accessToken, refreshToken, requirePasswordChange, role, email, fullName } = response.data;
+
+    const userData = {
+      id: "",
+      email,
+      fullName: fullName ?? "",
+      role: role as User["role"],
+      requirePasswordChange,
+      createdAt: ""
+    };
 
     localStorage.setItem("accessToken", accessToken);
     localStorage.setItem("refreshToken", refreshToken);

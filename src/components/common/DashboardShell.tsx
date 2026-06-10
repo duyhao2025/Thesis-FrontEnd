@@ -1,10 +1,21 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (user?.role) {
+      document.body.setAttribute("data-theme", user.role);
+    } else {
+      document.body.removeAttribute("data-theme");
+    }
+  }, [user?.role]);
+
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       <Sidebar />

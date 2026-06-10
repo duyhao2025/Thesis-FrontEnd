@@ -8,7 +8,8 @@ import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import Textarea from "@/components/ui/Textarea";
-import { TopicProposalResponse } from "@/types/entities";
+import Select from "@/components/ui/Select";
+import { TopicProposalResponse, TopicCategoryResponse } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
@@ -16,6 +17,7 @@ import { Plus, FileText, Pencil, Trash2 } from "lucide-react";
 
 export default function TopicProposalsPage() {
   const [proposals, setProposals] = useState<TopicProposalResponse[]>([]);
+  const [categories, setCategories] = useState<TopicCategoryResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -30,13 +32,18 @@ export default function TopicProposalsPage() {
     objective: "",
     scope: "",
     suggestedLecturerId: "",
+    topicCategoryId: "",
   });
 
   const loadProposals = () => {
     setLoading(true);
-    api.get("/topic-proposals/my")
-      .then((res) => setProposals(res.data || []))
-      .catch(() => showToast("error", "Không thể tải danh sách đề xuất"))
+    Promise.all([
+      api.get("/student/topic-proposals/my"),
+      api.get("/topic-categories"),
+    ]).then(([proposalRes, catRes]) => {
+      setProposals(proposalRes.data || []);
+      setCategories(catRes.data || []);
+    }).catch(() => showToast("error", "Không thể tải danh sách đề xuất"))
       .finally(() => setLoading(false));
   };
 
@@ -62,10 +69,22 @@ export default function TopicProposalsPage() {
     }
     setSubmitting(true);
     try {
-      await api.post("/topic-proposals", form);
+      const payload: Record<string, unknown> = {
+        title: form.title,
+        description: form.description,
+        objective: form.objective,
+        scope: form.scope,
+      };
+      if (form.suggestedLecturerId) {
+        payload.suggestedLecturerId = form.suggestedLecturerId;
+      }
+      if (form.topicCategoryId) {
+        payload.topicCategoryId = form.topicCategoryId;
+      }
+      await api.post("/student/topic-proposals", payload);
       showToast("success", "Gửi đề xuất thành công!");
       setShowModal(false);
-      setForm({ title: "", description: "", objective: "", scope: "", suggestedLecturerId: "" });
+      setForm({ title: "", description: "", objective: "", scope: "", suggestedLecturerId: "", topicCategoryId: "" });
       loadProposals();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Gửi đề xuất thất bại.";
@@ -120,7 +139,17 @@ export default function TopicProposalsPage() {
           <h1 className="text-xl font-bold text-gray-900">Đề xuất đề tài</h1>
           <p className="text-sm text-gray-500">Gửi đề xuất đề tài mới cho giảng viên</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
+        <Button onClick={() => {
+          setForm({
+            title: "",
+            description: "",
+            objective: "",
+            scope: "",
+            suggestedLecturerId: "",
+            topicCategoryId: "",
+          });
+          setShowModal(true);
+        }}>
           <Plus className="h-4 w-4" />
           Tạo đề xuất
         </Button>
@@ -165,6 +194,15 @@ export default function TopicProposalsPage() {
             placeholder="Phạm vi thực hiện đề tài..."
             rows={2}
           />
+          {categories.length > 0 && (
+            <Select
+              label="Danh mục đề tài"
+              value={form.topicCategoryId}
+              onChange={(e) => setForm({ ...form, topicCategoryId: e.target.value })}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
+              placeholder="Chọn danh mục (không bắt buộc)"
+            />
+          )}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
             <Button isLoading={submitting} onClick={handleSubmit}>Gửi đề xuất</Button>

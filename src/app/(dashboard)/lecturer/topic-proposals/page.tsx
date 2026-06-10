@@ -26,7 +26,7 @@ export default function LecturerTopicProposalsPage() {
 
   const load = () => {
     setLoading(true);
-    const url = filterStatus ? `/topic-proposals?status=${filterStatus}` : "/topic-proposals";
+    const url = filterStatus ? `/lecturer/topic-proposals?status=${filterStatus}` : "/lecturer/topic-proposals";
     api.get(url)
       .then((res) => setProposals(res.data || []))
       .catch(() => showToast("error", "Không thể tải đề xuất"))
@@ -39,7 +39,7 @@ export default function LecturerTopicProposalsPage() {
     if (!confirm("Duyệt đề xuất này?")) return;
     setActionId(id);
     try {
-      await api.put(`/topic-proposals/${id}/approve`, { comment: "" });
+      await api.put(`/lecturer/topic-proposals/${id}/approve`, { comment: "" });
       showToast("success", "Đề xuất đã được duyệt!");
       load();
     } catch {
@@ -56,7 +56,7 @@ export default function LecturerTopicProposalsPage() {
     }
     setActionId(selectedProposal.id);
     try {
-      await api.put(`/topic-proposals/${selectedProposal.id}/reject`, { reason: rejectReason });
+      await api.put(`/lecturer/topic-proposals/${selectedProposal.id}/reject`, { reason: rejectReason });
       showToast("success", "Đề xuất đã bị từ chối.");
       setShowRejectModal(false);
       setRejectReason("");
@@ -101,7 +101,7 @@ export default function LecturerTopicProposalsPage() {
       header: "",
       className: "w-48",
       render: (row: TopicProposalResponse) =>
-        row.status === "Pending" ? (
+        row.status === "PENDING" ? (
           <div className="flex gap-2">
             <Button
               size="sm"
@@ -151,9 +151,9 @@ export default function LecturerTopicProposalsPage() {
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
         >
           <option value="">Tất cả</option>
-          <option value="Pending">Chờ duyệt</option>
-          <option value="Approved">Đã duyệt</option>
-          <option value="Rejected">Từ chối</option>
+          <option value="PENDING">Chờ duyệt</option>
+          <option value="APPROVED">Đã duyệt</option>
+          <option value="REJECTED">Từ chối</option>
         </select>
       </div>
 
@@ -188,7 +188,7 @@ export default function LecturerTopicProposalsPage() {
             )}
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>Đóng</Button>
-              {selectedProposal.status === "Pending" && (
+              {selectedProposal.status === "PENDING" && (
                 <>
                   <Button variant="danger" onClick={() => { setShowDetailModal(false); openReject(selectedProposal); }}>
                     Từ chối

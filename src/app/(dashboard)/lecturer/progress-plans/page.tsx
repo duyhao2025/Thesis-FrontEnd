@@ -36,7 +36,7 @@ export default function ProgressPlansPage() {
     setLoading(true);
     Promise.all([
       api.get("/progress-plans"),
-      api.get("/topics"),
+      api.get("/topics/my/topics-for-plan"),
     ]).then(([planRes, topicRes]) => {
       setPlans(planRes.data || []);
       setTopics(topicRes.data || []);

@@ -43,7 +43,7 @@ export default function TopicsPage() {
   const loadData = () => {
     setLoading(true);
     Promise.all([
-      api.get("/topics"),
+      api.get("/topics/my"),
       api.get("/topic-categories"),
       api.get("/shared/departments"),
       api.get("/shared/majors"),

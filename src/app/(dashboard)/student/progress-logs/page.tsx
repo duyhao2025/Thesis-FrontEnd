@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import api from "@/lib/api";
 import DataTable from "@/components/ui/DataTable";
 import StatusBadge from "@/components/ui/StatusBadge";
@@ -12,7 +12,7 @@ import { ProgressLogResponse } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Plus, ClipboardList } from "lucide-react";
+import { Plus, ClipboardList, BookOpen } from "lucide-react";
 import clsx from "clsx";
 
 export default function ProgressLogsPage() {
@@ -22,33 +22,79 @@ export default function ProgressLogsPage() {
   const [submitting, setSubmitting] = useState(false);
   const { showToast } = useToast();
 
+  const [topicId, setTopicId] = useState<string>("");
   const [form, setForm] = useState({
     topicId: "",
     content: "",
     completionPercentage: 0,
   });
 
-  const loadLogs = () => {
-    api.get("/progress-logs/topic/00000000-0000-0000-0000-000000000000")
-      .then((res) => setLogs(res.data || []))
-      .catch(() => setLogs([]))
-      .finally(() => setLoading(false));
-  };
+  // Auto-detect student's approved topic
+  const detectTopicId = useCallback(async () => {
+    try {
+      const res = await api.get("/topic-registrations/my");
+      const registrations = res.data || [];
+      // Find approved registration
+      const approved = registrations.find(
+        (r: { status: string }) => r.status === "Approved" || r.status === "APPROVED"
+      );
+      if (approved) {
+        setTopicId(approved.topicId);
+        setForm((f) => ({ ...f, topicId: approved.topicId }));
+      }
+    } catch {
+      // silently fail
+    }
+  }, []);
 
-  useEffect(() => { loadLogs(); }, []);
+  const loadLogs = useCallback(
+    async (tid: string) => {
+      if (!tid) {
+        setLogs([]);
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await api.get(`/progress-logs/topic/${tid}`);
+        setLogs(res.data || []);
+      } catch {
+        setLogs([]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    detectTopicId();
+  }, [detectTopicId]);
+
+  useEffect(() => {
+    if (topicId) {
+      loadLogs(topicId);
+    } else {
+      setLoading(false);
+    }
+  }, [topicId, loadLogs]);
 
   const handleSubmit = async () => {
-    if (!form.topicId || !form.content) {
+    if (!topicId || !form.content) {
       showToast("error", "Vui lòng điền đầy đủ thông tin");
       return;
     }
     setSubmitting(true);
     try {
-      await api.post("/progress-logs", form);
+      await api.post("/progress-logs", {
+        topicId,
+        content: form.content,
+        completionPercentage: form.completionPercentage,
+      });
       showToast("success", "Thêm nhật ký thành công!");
       setShowModal(false);
-      setForm({ topicId: "", content: "", completionPercentage: 0 });
-      loadLogs();
+      setForm({ topicId, content: "", completionPercentage: 0 });
+      loadLogs(topicId);
     } catch {
       showToast("error", "Thêm nhật ký thất bại.");
     } finally {
@@ -79,14 +125,20 @@ export default function ProgressLogsPage() {
             <div
               className={clsx(
                 "h-2 rounded-full transition-all",
-                row.completionPercentage >= 75 ? "bg-green-500" :
-                row.completionPercentage >= 50 ? "bg-blue-500" :
-                row.completionPercentage >= 25 ? "bg-amber-500" : "bg-red-500"
+                row.completionPercentage >= 75
+                  ? "bg-green-500"
+                  : row.completionPercentage >= 50
+                  ? "bg-blue-500"
+                  : row.completionPercentage >= 25
+                  ? "bg-amber-500"
+                  : "bg-red-500"
               )}
               style={{ width: `${row.completionPercentage}%` }}
             />
           </div>
-          <span className="text-xs font-medium">{row.completionPercentage}%</span>
+          <span className="text-xs font-medium">
+            {row.completionPercentage}%
+          </span>
         </div>
       ),
     },
@@ -94,10 +146,12 @@ export default function ProgressLogsPage() {
       key: "lecturerFeedback",
       header: "Phản hồi GV",
       render: (row: ProgressLogResponse) => (
-        <span className={clsx(
-          "text-xs",
-          row.lecturerFeedback ? "text-green-600" : "text-gray-400"
-        )}>
+        <span
+          className={clsx(
+            "text-xs",
+            row.lecturerFeedback ? "text-green-600" : "text-gray-400"
+          )}
+        >
           {row.lecturerFeedback || "Chưa có phản hồi"}
         </span>
       ),
@@ -109,32 +163,59 @@ export default function ProgressLogsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Nhật ký tiến độ</h1>
-          <p className="text-sm text-gray-500">Cập nhật tiến độ làm việc của bạn</p>
+          <p className="text-sm text-gray-500">
+            Cập nhật tiến độ làm việc của bạn
+          </p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus className="h-4 w-4" />
-          Thêm nhật ký
-        </Button>
+        {topicId && (
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="h-4 w-4" />
+            Thêm nhật ký
+          </Button>
+        )}
       </div>
 
-      {logs.length === 0 && !loading ? (
+      {!topicId ? (
+        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-16">
+          <BookOpen className="mb-3 h-12 w-12 text-gray-300" />
+          <p className="font-medium text-gray-600">
+            Bạn chưa có đề tài được duyệt
+          </p>
+          <p className="mt-1 text-sm text-gray-500">
+            Vui lòng đăng ký hoặc đề xuất đề tài trước
+          </p>
+        </div>
+      ) : logs.length === 0 && !loading ? (
         <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-gray-300 py-16">
           <ClipboardList className="mb-3 h-12 w-12 text-gray-300" />
           <p className="text-gray-500">Chưa có nhật ký nào</p>
-          <Button className="mt-4" size="sm" onClick={() => setShowModal(true)}>Thêm nhật ký đầu tiên</Button>
+          <Button
+            className="mt-4"
+            size="sm"
+            onClick={() => setShowModal(true)}
+          >
+            Thêm nhật ký đầu tiên
+          </Button>
         </div>
       ) : (
-        <DataTable columns={columns} data={logs} loading={loading} rowKey="id" />
+        <DataTable
+          columns={columns}
+          data={logs}
+          loading={loading}
+          rowKey="id"
+        />
       )}
 
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Thêm nhật ký tiến độ" size="lg">
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Thêm nhật ký tiến độ"
+        size="lg"
+      >
         <div className="space-y-4">
-          <Input
-            label="Topic ID"
-            value={form.topicId}
-            onChange={(e) => setForm({ ...form, topicId: e.target.value })}
-            placeholder="Nhập ID đề tài của bạn"
-          />
+          <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
+            Đề tài: <span className="font-medium">{topicId}</span>
+          </div>
           <Textarea
             label="Nội dung công việc đã làm"
             value={form.content}
@@ -152,7 +233,12 @@ export default function ProgressLogsPage() {
               max="100"
               step="5"
               value={form.completionPercentage}
-              onChange={(e) => setForm({ ...form, completionPercentage: Number(e.target.value) })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  completionPercentage: Number(e.target.value),
+                })
+              }
               className="w-full accent-blue-600"
             />
             <div className="flex justify-between text-xs text-gray-400">
@@ -162,8 +248,12 @@ export default function ProgressLogsPage() {
             </div>
           </div>
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
-            <Button isLoading={submitting} onClick={handleSubmit}>Lưu nhật ký</Button>
+            <Button variant="outline" onClick={() => setShowModal(false)}>
+              Hủy
+            </Button>
+            <Button isLoading={submitting} onClick={handleSubmit}>
+              Lưu nhật ký
+            </Button>
           </div>
         </div>
       </Modal>

@@ -45,24 +45,30 @@ export default function DataTable<T>({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200">
-      <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+    <div
+      className="overflow-x-auto rounded-xl border"
+      style={{ borderColor: "var(--role-card-border)" }}
+    >
+      <table className="min-w-full divide-y">
+        <thead
+          style={{ backgroundColor: "var(--role-sidebar-bg)" }}
+        >
           <tr>
             {columns.map((col) => (
               <th
                 key={col.key}
                 className={clsx(
-                  "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-600",
+                  "px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider",
                   col.className
                 )}
+                style={{ color: "var(--role-sidebar-text)" }}
               >
                 {col.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">
+        <tbody className="divide-y bg-white" style={{ borderColor: "var(--role-card-border)" }}>
           {data.map((row, idx) => {
             const key = rowKey ? String(row[rowKey]) : idx;
             return (
@@ -71,7 +77,7 @@ export default function DataTable<T>({
                 onClick={() => onRowClick?.(row)}
                 className={clsx(
                   "transition-colors",
-                  onRowClick && "cursor-pointer hover:bg-blue-50"
+                  onRowClick && "cursor-pointer hover:bg-gray-50"
                 )}
               >
                 {columns.map((col) => (

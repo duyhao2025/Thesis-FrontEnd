@@ -22,8 +22,11 @@ export interface LoginRequest {
 export interface LoginResponse {
   accessToken: string;
   refreshToken: string;
-  user: User;
-  expiresIn: number;
+  expiresAt: string;
+  requirePasswordChange: boolean;
+  role: string;
+  email: string;
+  fullName: string;
 }
 
 export interface RefreshTokenRequest {

@@ -7,7 +7,6 @@ import StatusBadge from "@/components/ui/StatusBadge";
 import Button from "@/components/ui/Button";
 import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
-import Textarea from "@/components/ui/Textarea";
 import Select from "@/components/ui/Select";
 import { RegistrationPeriodResponse } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
@@ -15,6 +14,7 @@ import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
 
 export default function RegistrationPeriodsPage() {
   const [periods, setPeriods] = useState<RegistrationPeriodResponse[]>([]);
+  const [semesters, setSemesters] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<RegistrationPeriodResponse | null>(null);
@@ -33,8 +33,12 @@ export default function RegistrationPeriodsPage() {
 
   const load = () => {
     setLoading(true);
-    api.get("/registration-periods")
-      .then((res) => setPeriods(res.data || []))
+    Promise.all([
+      api.get("/registration-periods").then((res) => setPeriods(res.data || [])),
+      api.get("/semesters").then((res) =>
+        setSemesters((res.data || []).map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })))
+      ),
+    ])
       .catch(() => showToast("error", "Không thể tải dữ liệu"))
       .finally(() => setLoading(false));
   };
@@ -70,7 +74,7 @@ export default function RegistrationPeriodsPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name || !form.startDate || !form.endDate) {
+    if (!form.name || !form.startDate || !form.endDate || !form.semesterId) {
       showToast("error", "Vui lòng điền đầy đủ thông tin");
       return;
     }
@@ -105,12 +109,23 @@ export default function RegistrationPeriodsPage() {
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
     const newStatus = currentStatus === "OPEN" ? "CLOSED" : "OPEN";
+    const period = periods.find((p) => p.id === id);
+    if (!period) return;
     try {
-      await api.put(`/registration-periods/${id}`, { ...periods.find((p) => p.id === id), status: newStatus });
+      await api.put(`/registration-periods/${id}`, {
+        semesterId: period.semesterId,
+        name: period.name,
+        startDate: period.startDate.split("T")[0],
+        endDate: period.endDate.split("T")[0],
+        status: newStatus,
+        maxTopicPerLecturer: period.maxTopicPerLecturer,
+        maxStudentPerGroup: period.maxStudentPerGroup,
+      });
       showToast("success", `Đợt đăng ký đã ${newStatus === "OPEN" ? "mở" : "đóng"}!`);
       load();
-    } catch {
-      showToast("error", "Thao tác thất bại.");
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Thao tác thất bại.";
+      showToast("error", message);
     }
   };
 
@@ -195,11 +210,12 @@ export default function RegistrationPeriodsPage() {
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="VD: Đợt đăng ký HK2 2025-2026"
           />
-          <Input
-            label="Semester ID"
+          <Select
+            label="Học kỳ *"
             value={form.semesterId}
             onChange={(e) => setForm({ ...form, semesterId: e.target.value })}
-            placeholder="Nhập ID học kỳ"
+            options={semesters.map((s) => ({ value: s.id, label: s.name }))}
+            placeholder="Chọn học kỳ"
           />
           <div className="grid grid-cols-2 gap-4">
             <Input
