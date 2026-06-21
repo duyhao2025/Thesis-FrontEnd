@@ -13,7 +13,7 @@ import { TopicProposalResponse, TopicCategoryResponse } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Plus, FileText, Pencil, Trash2 } from "lucide-react";
+import { Plus, FileText, Eye } from "lucide-react";
 
 export default function TopicProposalsPage() {
   const [proposals, setProposals] = useState<TopicProposalResponse[]>([]);
@@ -41,8 +41,10 @@ export default function TopicProposalsPage() {
       api.get("/student/topic-proposals/my"),
       api.get("/topic-categories"),
     ]).then(([proposalRes, catRes]) => {
-      setProposals(proposalRes.data || []);
-      setCategories(catRes.data || []);
+      const proposals = proposalRes?.data?.data ?? proposalRes?.data ?? [];
+      const cats = catRes?.data?.data ?? catRes?.data ?? [];
+      setProposals(Array.isArray(proposals) ? proposals : []);
+      setCategories(Array.isArray(cats) ? cats : []);
     }).catch(() => showToast("error", "Không thể tải danh sách đề xuất"))
       .finally(() => setLoading(false));
   };
@@ -119,16 +121,16 @@ export default function TopicProposalsPage() {
     {
       key: "actions",
       header: "",
-      className: "w-20",
-      render: (row: TopicProposalResponse) =>
-        row.status === "PENDING" && (
-          <button
-            onClick={(e) => { e.stopPropagation(); openDetail(row); }}
-            className="rounded p-1 text-blue-600 hover:bg-blue-50"
-          >
-            <Pencil className="h-4 w-4" />
-          </button>
-        ),
+      className: "w-24",
+      render: (row: TopicProposalResponse) => (
+        <button
+          onClick={(e) => { e.stopPropagation(); openDetail(row); }}
+          className="rounded p-1 text-blue-600 hover:bg-blue-50"
+          title="Xem chi tiết"
+        >
+          <Eye className="h-4 w-4" />
+        </button>
+      ),
     },
   ];
 
@@ -235,6 +237,29 @@ export default function TopicProposalsPage() {
               <div>
                 <label className="text-xs font-medium text-gray-500">Phạm vi</label>
                 <p className="text-sm text-gray-700">{selectedProposal.scope}</p>
+              </div>
+            )}
+            {selectedProposal.status === "REJECTED" &&
+              (selectedProposal.reason || selectedProposal.rejectReason || selectedProposal.rejectionReason) && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <label className="text-xs font-semibold text-red-700">Lý do từ chối</label>
+                  <p className="mt-1 text-sm text-red-900">
+                    {selectedProposal.reason || selectedProposal.rejectReason || selectedProposal.rejectionReason}
+                  </p>
+                  {(selectedProposal.reviewedByName || selectedProposal.reviewedAt) && (
+                    <p className="mt-1 text-xs text-red-600">
+                      Bởi: {selectedProposal.reviewedByName || "—"}
+                      {selectedProposal.reviewedAt &&
+                        ` • ${format(new Date(selectedProposal.reviewedAt), "dd/MM/yyyy HH:mm", { locale: vi })}`}
+                    </p>
+                  )}
+                </div>
+              )}
+            {selectedProposal.status === "LECTURER_APPROVED" && (
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3">
+                <p className="text-sm text-cyan-800">
+                  Đề tài đã được giảng viên duyệt, đang chờ Trưởng bộ môn phê duyệt cuối cùng.
+                </p>
               </div>
             )}
             <div className="flex justify-end">

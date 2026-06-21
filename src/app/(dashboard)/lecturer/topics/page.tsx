@@ -48,10 +48,14 @@ export default function TopicsPage() {
       api.get("/shared/departments"),
       api.get("/shared/majors"),
     ]).then(([topicRes, catRes, deptRes, majorRes]) => {
-      setTopics(topicRes.data || []);
-      setCategories(catRes.data || []);
-      setDepartments(deptRes.data || []);
-      setMajors(majorRes.data || []);
+      const topics = topicRes?.data?.data ?? topicRes?.data ?? [];
+      const cats = catRes?.data?.data ?? catRes?.data ?? [];
+      const depts = deptRes?.data?.data ?? deptRes?.data ?? [];
+      const majs = majorRes?.data?.data ?? majorRes?.data ?? [];
+      setTopics(Array.isArray(topics) ? topics : []);
+      setCategories(Array.isArray(cats) ? cats : []);
+      setDepartments(Array.isArray(depts) ? depts : []);
+      setMajors(Array.isArray(majs) ? majs : []);
     }).catch(() => showToast("error", "Không thể tải dữ liệu"))
       .finally(() => setLoading(false));
   };

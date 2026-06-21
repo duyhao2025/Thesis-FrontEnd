@@ -16,12 +16,15 @@ export interface TopicRegistrationResponse {
 }
 
 // Topic Proposal
+export type TopicProposalStatus = "PENDING" | "LECTURER_APPROVED" | "APPROVED" | "REJECTED";
+
 export interface CreateTopicProposalRequest {
   title: string;
   description: string;
   objective: string;
   scope: string;
   suggestedLecturerId?: string;
+  topicCategoryId?: string;
 }
 
 export interface TopicProposalResponse {
@@ -34,16 +37,32 @@ export interface TopicProposalResponse {
   description: string;
   objective: string;
   scope: string;
-  status: string;
+  status: TopicProposalStatus;
+  reason?: string;
+  rejectReason?: string;
+  rejectionReason?: string;
+  reviewedByName?: string;
+  reviewedAt?: string;
   createdAt: string;
+  updatedAt: string;
+  topicCategoryId?: string;
+  topicCategoryName?: string;
+  departmentId?: string;
+  departmentName?: string;
+  majorId?: string;
+  majorName?: string;
+  maxStudents?: number;
 }
 
 // Progress Log
+export type ProgressLogStatus = "Draft" | "Submitted" | "Reviewed" | "Rejected";
+
 export interface CreateProgressLogRequest {
   topicId: string;
   studentId: string;
   content: string;
   completionPercentage: number;
+  Status?: ProgressLogStatus;
 }
 
 export interface UpdateProgressLogRequest {
@@ -58,7 +77,24 @@ export interface ProgressLogResponse {
   content: string;
   completionPercentage: number;
   submittedAt: string;
+  Status?: ProgressLogStatus;
   lecturerFeedback?: string;
+}
+
+// Lecturer Feedback
+export interface CreateFeedbackRequest {
+  Comment: string;
+}
+
+export interface FeedbackResponse {
+  id: string;
+  progressLogId: string;
+  lecturerId: string;
+  lecturerFullName: string;
+  Comment: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Periodic Report
