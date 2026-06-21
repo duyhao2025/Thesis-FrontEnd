@@ -64,13 +64,20 @@ export default function LecturerStudentsPage() {
     try {
       const firstLog = feedbackLogs[0];
       await api.post(`/progress-logs/${firstLog.id}/feedbacks`, {
-        comment: feedback,
-        status: "Reviewed",
+        Comment: feedback,
       });
       showToast("success", "Phản hồi đã được gửi!");
       setShowDetailModal(false);
-    } catch {
-      showToast("error", "Gửi phản hồi thất bại.");
+      setFeedback("");
+      if (selectedGroup?.topicId) {
+        const res = await api.get(`/progress-logs/topic/${selectedGroup.topicId}`);
+        setFeedbackLogs(res.data || []);
+      }
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const detail = axiosErr?.response?.data?.message || axiosErr?.message || "Lỗi không xác định";
+      console.error("sendFeedback error:", axiosErr?.response?.data || err);
+      showToast("error", `Gửi phản hồi thất bại: ${detail}`);
     } finally {
       setSubmitting(false);
     }
