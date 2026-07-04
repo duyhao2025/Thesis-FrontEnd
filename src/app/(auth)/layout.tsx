@@ -19,7 +19,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             Student: "/student/dashboard",
             Lecturer: "/lecturer/dashboard",
             FacultyStaff: "/faculty-staff/dashboard",
-            HeadOfDepartment: "/lecturer/dashboard",
+            HeadOfDepartment: "/head/dashboard",
             Admin: "/admin/dashboard",
           };
           const target = user.requirePasswordChange

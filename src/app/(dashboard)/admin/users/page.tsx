@@ -8,8 +8,10 @@ import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
-import { Plus, Pencil, Trash2, Users, Search } from "lucide-react";
+import ImportUsersModal from "@/components/admin/ImportUsersModal";
+import { Plus, Pencil, Trash2, Users, Search, Upload, Download } from "lucide-react";
 import { UserRole } from "@/types/api";
+import { exportUsers, saveBlob } from "@/lib/admin-api";
 
 interface AdminUser {
   id: string;
@@ -32,11 +34,13 @@ export default function AdminUsersPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const [deletingUser, setDeletingUser] = useState<AdminUser | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [exporting, setExporting] = useState(false);
   const { showToast } = useToast();
 
   const [form, setForm] = useState({
@@ -125,6 +129,23 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const blob = await exportUsers({
+        role: roleFilter || undefined,
+        search: search || undefined,
+      });
+      const filename = `users_export_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      saveBlob(blob, filename);
+      showToast("success", "Đã xuất file Excel thành công!");
+    } catch {
+      showToast("error", "Lỗi khi xuất file Excel");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const filtered = users.filter((u) => {
     const matchSearch = !search ||
       u.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -196,10 +217,20 @@ export default function AdminUsersPage() {
           <h1 className="text-xl font-bold text-gray-900">Quản lý người dùng</h1>
           <p className="text-sm text-gray-500">Thêm, sửa, xóa và phân quyền người dùng</p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          Thêm người dùng
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={handleExport} isLoading={exporting}>
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
+          <Button variant="outline" onClick={() => setShowImportModal(true)}>
+            <Upload className="h-4 w-4" />
+            Import Excel
+          </Button>
+          <Button onClick={openCreate}>
+            <Plus className="h-4 w-4" />
+            Thêm người dùng
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -301,6 +332,12 @@ export default function AdminUsersPage() {
           </div>
         </div>
       </Modal>
+
+      <ImportUsersModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImportComplete={load}
+      />
     </div>
   );
 }

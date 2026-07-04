@@ -11,8 +11,20 @@ import {
   ClipboardList,
   Calendar,
   ArrowRight,
+  Users,
+  MapPin,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
+import { format, parseISO } from "date-fns";
+import { vi } from "date-fns/locale";
+
+interface DefenseInfo {
+  topicTitle: string;
+  defenseDate: string;
+  location: string;
+}
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -23,14 +35,24 @@ export default function StudentDashboard() {
   const [proposals, setProposals] = useState<
     { title: string; status: string; createdAt: string }[]
   >([]);
+  const [defense, setDefense] = useState<DefenseInfo | null>(null);
 
   useEffect(() => {
     Promise.all([
       api.get("/topic-registrations/my").catch(() => ({ data: [] })),
       api.get("/topic-proposals/my").catch(() => ({ data: [] })),
-    ]).then(([regRes, propRes]) => {
+      api.get("/student/final-results/my").catch(() => ({ data: [] })),
+    ]).then(([regRes, propRes, defRes]) => {
       setRegistrations(regRes.data || []);
       setProposals(propRes.data || []);
+      const defenseList = defRes.data || [];
+      if (defenseList.length > 0 && defenseList[0].defenseDate) {
+        setDefense({
+          topicTitle: defenseList[0].topicTitle,
+          defenseDate: defenseList[0].defenseDate,
+          location: defenseList[0].location,
+        });
+      }
       setLoading(false);
     });
   }, []);
@@ -119,6 +141,59 @@ export default function StudentDashboard() {
           </Link>
         ))}
       </div>
+
+      {/* Council info card */}
+      {defense && (
+        <Card
+          title={
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-blue-600" />
+              <span>Hội đồng báo cáo</span>
+            </div>
+          }
+          action={
+            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+              <CheckCircle2 className="h-3 w-3" />
+              Đã xếp lịch
+            </span>
+          }
+        >
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+              <p className="text-xs font-medium uppercase text-blue-700">
+                Đề tài
+              </p>
+              <p className="mt-1 line-clamp-2 text-sm font-medium text-gray-900">
+                {defense.topicTitle}
+              </p>
+            </div>
+            <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-3">
+              <p className="flex items-center gap-1 text-xs font-medium uppercase text-amber-700">
+                <Calendar className="h-3 w-3" />
+                Ngày báo cáo
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                {format(parseISO(defense.defenseDate), "dd/MM/yyyy", {
+                  locale: vi,
+                })}
+              </p>
+              <p className="mt-0.5 flex items-center gap-1 text-xs text-gray-600">
+                <Clock className="h-3 w-3" />
+                {format(parseISO(defense.defenseDate), "HH:mm", { locale: vi })}
+              </p>
+            </div>
+            <div className="rounded-lg border border-violet-100 bg-violet-50/50 p-3">
+              <p className="flex items-center gap-1 text-xs font-medium uppercase text-violet-700">
+                <MapPin className="h-3 w-3" />
+                Phòng
+              </p>
+              <p className="mt-1 text-sm font-semibold text-gray-900">
+                {defense.location}
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Recent activity */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -6,12 +6,13 @@ import clsx from "clsx";
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
+  helperText?: string;
   options: { value: string | number; label: string }[];
   placeholder?: string;
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ label, error, options, placeholder, className, id, ...props }, ref) => {
+  ({ label, error, helperText, options, placeholder, className, id, ...props }, ref) => {
     const selectId = id || label?.toLowerCase().replace(/\s+/g, "-");
 
     return (
@@ -47,6 +48,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && <p className="mt-1 text-xs text-red-500">{error}</p>}
+        {helperText && !error && <p className="mt-1 text-xs text-gray-500">{helperText}</p>}
       </div>
     );
   }

@@ -25,8 +25,10 @@ import {
   ClipboardCheck,
   Megaphone,
   BookMarked,
+  Bell,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotifications } from "@/hooks/useNotifications";
 
 interface MenuItem {
   id: string;
@@ -38,29 +40,30 @@ interface MenuItem {
 const menuConfig: Record<string, MenuItem[]> = {
   Student: [
     { id: "student-dashboard", label: "Tổng quan", href: "/student/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { id: "student-group", label: "Nhóm của tôi", href: "/student/group", icon: <Users className="h-5 w-5" /> },
     { id: "student-registrations", label: "Đăng ký đề tài", href: "/student/topic-registrations", icon: <BookOpen className="h-5 w-5" /> },
     { id: "student-proposals", label: "Đề xuất đề tài", href: "/student/topic-proposals", icon: <FileText className="h-5 w-5" /> },
     { id: "student-logs", label: "Nhật ký tiến độ", href: "/student/progress-logs", icon: <ClipboardList className="h-5 w-5" /> },
     { id: "student-reports", label: "Báo cáo định kỳ", href: "/student/periodic-reports", icon: <FileBarChart className="h-5 w-5" /> },
     { id: "student-my-topic", label: "Đề tài của tôi", href: "/student/my-topic", icon: <FolderKanban className="h-5 w-5" /> },
+    { id: "student-notifications", label: "Thông báo", href: "/student/notifications", icon: <Bell className="h-5 w-5" /> },
   ],
   Lecturer: [
     { id: "lecturer-dashboard", label: "Tổng quan", href: "/lecturer/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
     { id: "lecturer-topics", label: "Quản lý đề tài", href: "/lecturer/topics", icon: <BookOpen className="h-5 w-5" /> },
+    { id: "lecturer-registrations", label: "Duyệt đăng ký", href: "/lecturer/topic-registrations", icon: <ClipboardCheck className="h-5 w-5" /> },
     { id: "lecturer-categories", label: "Danh mục đề tài", href: "/lecturer/topic-categories", icon: <FolderKanban className="h-5 w-5" /> },
     { id: "lecturer-proposals", label: "Duyệt đề xuất", href: "/lecturer/topic-proposals", icon: <CheckCircle className="h-5 w-5" /> },
     { id: "lecturer-plans", label: "Kế hoạch tiến độ", href: "/lecturer/progress-plans", icon: <ListChecks className="h-5 w-5" /> },
     { id: "lecturer-students", label: "Sinh viên", href: "/lecturer/students", icon: <GraduationCap className="h-5 w-5" /> },
+    { id: "lecturer-grading", label: "Chấm điểm", href: "/lecturer/grading", icon: <ClipboardCheck className="h-5 w-5" /> },
+    { id: "lecturer-notifications", label: "Thông báo", href: "/lecturer/notifications", icon: <Bell className="h-5 w-5" /> },
   ],
   HeadOfDepartment: [
-    { id: "lecturer-dashboard", label: "Tổng quan", href: "/lecturer/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { id: "lecturer-topics", label: "Quản lý đề tài", href: "/lecturer/topics", icon: <BookOpen className="h-5 w-5" /> },
-    { id: "lecturer-categories", label: "Danh mục đề tài", href: "/lecturer/topic-categories", icon: <FolderKanban className="h-5 w-5" /> },
-    { id: "lecturer-proposals", label: "Duyệt đề xuất", href: "/lecturer/topic-proposals", icon: <CheckCircle className="h-5 w-5" /> },
-    { id: "lecturer-plans", label: "Kế hoạch tiến độ", href: "/lecturer/progress-plans", icon: <ListChecks className="h-5 w-5" /> },
-    { id: "lecturer-students", label: "Sinh viên", href: "/lecturer/students", icon: <GraduationCap className="h-5 w-5" /> },
-    { id: "hod-assignments", label: "Phân công", href: "/head/assignments", icon: <ClipboardCheck className="h-5 w-5" /> },
-    { id: "hod-councils", label: "Hội đồng", href: "/head/councils", icon: <Users className="h-5 w-5" /> },
+    { id: "hod-dashboard", label: "Tổng quan", href: "/head/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { id: "hod-proposals", label: "Duyệt đề tài", href: "/head/topic-proposals", icon: <CheckCircle className="h-5 w-5" /> },
+    { id: "hod-assignments", label: "Phân công giảng viên", href: "/head/assignments", icon: <ClipboardCheck className="h-5 w-5" /> },
+    { id: "hod-councils", label: "Hội đồng báo cáo", href: "/head/councils", icon: <Users className="h-5 w-5" /> },
     { id: "hod-rubrics", label: "Tiêu chí chấm", href: "/head/rubrics", icon: <BookMarked className="h-5 w-5" /> },
   ],
   FacultyStaff: [
@@ -70,6 +73,7 @@ const menuConfig: Record<string, MenuItem[]> = {
   Admin: [
     { id: "admin-dashboard", label: "Tổng quan", href: "/admin/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
     { id: "admin-users", label: "Quản lý người dùng", href: "/admin/users", icon: <Users className="h-5 w-5" /> },
+    { id: "admin-semesters", label: "Học kỳ", href: "/admin/semesters", icon: <BookMarked className="h-5 w-5" /> },
     { id: "admin-departments", label: "Khoa / Ngành", href: "/admin/departments", icon: <Building2 className="h-5 w-5" /> },
     { id: "admin-categories", label: "Danh mục đề tài", href: "/admin/topic-categories", icon: <FolderKanban className="h-5 w-5" /> },
     { id: "admin-audit", label: "Nhật ký hệ thống", href: "/admin/audit-log", icon: <ClipboardCheck className="h-5 w-5" /> },
@@ -106,6 +110,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
 
   const role = user?.role || "";
   const menuItems = menuConfig[role] || [];
@@ -170,12 +175,17 @@ export default function Sidebar() {
             >
               <span
                 className={clsx(
-                  "flex-shrink-0 transition-colors",
+                  "relative flex-shrink-0 transition-colors",
                   isActive ? roleLogoColors[role] : ""
                 )}
                 style={isActive ? { color: "var(--role-accent)" } : undefined}
               >
                 {item.icon}
+                {(item.id === "student-notifications" || item.id === "lecturer-notifications") && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </span>
               {!collapsed && <span>{item.label}</span>}
             </Link>
