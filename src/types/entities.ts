@@ -173,30 +173,14 @@ export interface TopicCategoryResponse {
 // Registration Period
 export type RegistrationPeriodStatus = "DRAFT" | "OPEN" | "CLOSED" | "ARCHIVED";
 
-export type SemesterStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
-
-export interface SemesterResponse {
-  id: string;
-  name: string;
-  year: number;
-  term: number;
-  startDate: string;
-  endDate: string;
-  status: SemesterStatus;
-}
-
 export interface RegistrationPeriodResponse {
   id: string;
-  semesterId?: string;
-  semesterName: string;
+  term: number;
   name: string;
   startDate: string;
   endDate: string;
   status: RegistrationPeriodStatus;
   minGPA: number;
-  maxStudentsPerTopic: number;
-  maxTopicPerLecturer: number;
-  maxStudentPerGroup: number;
 }
 
 // Milestone Submission - Student view

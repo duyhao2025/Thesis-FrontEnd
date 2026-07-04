@@ -12,9 +12,14 @@ import { RegistrationPeriodResponse } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
 
+const TERM_OPTIONS = [
+  { value: "1", label: "Học kỳ 1" },
+  { value: "2", label: "Học kỳ 2" },
+  { value: "3", label: "Học kỳ 3" },
+];
+
 export default function RegistrationPeriodsPage() {
   const [periods, setPeriods] = useState<RegistrationPeriodResponse[]>([]);
-  const [semesters, setSemesters] = useState<{ id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<RegistrationPeriodResponse | null>(null);
@@ -22,25 +27,18 @@ export default function RegistrationPeriodsPage() {
   const { showToast } = useToast();
 
   const [form, setForm] = useState({
-    semesterId: "",
+    term: 1,
     name: "",
     startDate: "",
     endDate: "",
     status: "DRAFT",
     minGPA: 0,
-    maxStudentsPerTopic: 3,
-    maxTopicPerLecturer: 5,
-    maxStudentPerGroup: 3,
   });
 
   const load = () => {
     setLoading(true);
-    Promise.all([
-      api.get("/registration-periods").then((res) => setPeriods(res.data || [])),
-      api.get("/semesters").then((res) =>
-        setSemesters((res.data || []).map((s: { id: string; name: string }) => ({ id: s.id, name: s.name })))
-      ),
-    ])
+    api.get("/registration-periods")
+      .then((res) => setPeriods(res.data || []))
       .catch(() => showToast("error", "Không thể tải dữ liệu"))
       .finally(() => setLoading(false));
   };
@@ -50,15 +48,12 @@ export default function RegistrationPeriodsPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({
-      semesterId: "",
+      term: 1,
       name: "",
       startDate: "",
       endDate: "",
       status: "DRAFT",
       minGPA: 0,
-      maxStudentsPerTopic: 3,
-      maxTopicPerLecturer: 5,
-      maxStudentPerGroup: 3,
     });
     setShowModal(true);
   };
@@ -66,15 +61,12 @@ export default function RegistrationPeriodsPage() {
   const openEdit = (period: RegistrationPeriodResponse) => {
     setEditing(period);
     setForm({
-      semesterId: period.semesterId || "",
+      term: period.term,
       name: period.name,
       startDate: period.startDate.split("T")[0],
       endDate: period.endDate.split("T")[0],
       status: period.status,
       minGPA: period.minGPA,
-      maxStudentsPerTopic: period.maxStudentsPerTopic,
-      maxTopicPerLecturer: period.maxTopicPerLecturer,
-      maxStudentPerGroup: period.maxStudentPerGroup,
     });
     setShowModal(true);
   };
@@ -84,11 +76,19 @@ export default function RegistrationPeriodsPage() {
       showToast("error", "Vui lòng điền đầy đủ thông tin");
       return;
     }
+    if (new Date(form.startDate) >= new Date(form.endDate)) {
+      showToast("error", "Ngày bắt đầu phải trước ngày kết thúc");
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
-        ...form,
-        semesterId: form.semesterId || undefined,
+        term: form.term,
+        name: form.name,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        status: form.status,
+        minGPA: form.minGPA,
       };
       if (editing) {
         await api.put(`/registration-periods/${editing.id}`, payload);
@@ -121,10 +121,7 @@ export default function RegistrationPeriodsPage() {
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-    const period = periods.find((p) => p.id === id);
-    if (!period) return;
-
+  const handleToggleStatus = async (id: string, currentStatus: string, period: RegistrationPeriodResponse) => {
     if (currentStatus === "OPEN") {
       try {
         await api.post(`/registration-periods/${id}/close`);
@@ -137,20 +134,16 @@ export default function RegistrationPeriodsPage() {
       return;
     }
 
-    const newStatus = currentStatus === "CLOSED" ? "OPEN" : "OPEN";
     try {
       await api.put(`/registration-periods/${id}`, {
-        semesterId: period.semesterId || undefined,
+        term: period.term,
         name: period.name,
         startDate: period.startDate.split("T")[0],
         endDate: period.endDate.split("T")[0],
-        status: newStatus,
+        status: "OPEN",
         minGPA: period.minGPA,
-        maxStudentsPerTopic: period.maxStudentsPerTopic,
-        maxTopicPerLecturer: period.maxTopicPerLecturer,
-        maxStudentPerGroup: period.maxStudentPerGroup,
       });
-      showToast("success", `Đợt đăng ký đã ${newStatus === "OPEN" ? "mở" : "đóng"}!`);
+      showToast("success", "Đợt đăng ký đã mở!");
       load();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Thao tác thất bại.";
@@ -158,9 +151,21 @@ export default function RegistrationPeriodsPage() {
     }
   };
 
+  const getTermLabel = (term: number) => {
+    return `HK${term}`;
+  };
+
   const columns = [
-    { key: "name", header: "Tên đợt", render: (r: RegistrationPeriodResponse) => <span className="font-medium">{r.name}</span> },
-    { key: "semesterName", header: "Học kỳ" },
+    {
+      key: "name",
+      header: "Tên đợt",
+      render: (r: RegistrationPeriodResponse) => <span className="font-medium">{r.name}</span>,
+    },
+    {
+      key: "term",
+      header: "Học kỳ",
+      render: (r: RegistrationPeriodResponse) => getTermLabel(r.term),
+    },
     {
       key: "startDate",
       header: "Bắt đầu",
@@ -183,7 +188,7 @@ export default function RegistrationPeriodsPage() {
       render: (r: RegistrationPeriodResponse) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={() => handleToggleStatus(r.id, r.status)}
+            onClick={() => handleToggleStatus(r.id, r.status, r)}
             className={`rounded p-1.5 text-xs font-medium ${
               r.status === "OPEN"
                 ? "text-red-600 hover:bg-red-50"
@@ -230,7 +235,7 @@ export default function RegistrationPeriodsPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editing ? "Sửa đợt đăng ký" : "Tạo đợt đăng ký mới"}
-        size="lg"
+        size="md"
       >
         <div className="space-y-4">
           <Input
@@ -241,10 +246,9 @@ export default function RegistrationPeriodsPage() {
           />
           <Select
             label="Học kỳ *"
-            value={form.semesterId}
-            onChange={(e) => setForm({ ...form, semesterId: e.target.value })}
-            options={semesters.map((s) => ({ value: s.id, label: s.name }))}
-            placeholder="Chọn học kỳ"
+            value={String(form.term)}
+            onChange={(e) => setForm({ ...form, term: Number(e.target.value) })}
+            options={TERM_OPTIONS}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -270,32 +274,6 @@ export default function RegistrationPeriodsPage() {
               { value: "CLOSED", label: "Đóng" },
             ]}
           />
-          <div className="grid grid-cols-3 gap-4">
-            <Input
-              label="Đề tài tối đa/GV"
-              type="number"
-              min={1}
-              max={20}
-              value={form.maxTopicPerLecturer}
-              onChange={(e) => setForm({ ...form, maxTopicPerLecturer: Number(e.target.value) })}
-            />
-            <Input
-              label="SV tối đa/nhóm"
-              type="number"
-              min={1}
-              max={10}
-              value={form.maxStudentPerGroup}
-              onChange={(e) => setForm({ ...form, maxStudentPerGroup: Number(e.target.value) })}
-            />
-            <Input
-              label="SV tối đa/đề tài"
-              type="number"
-              min={1}
-              max={10}
-              value={form.maxStudentsPerTopic}
-              onChange={(e) => setForm({ ...form, maxStudentsPerTopic: Number(e.target.value) })}
-            />
-          </div>
           <Input
             label="Điểm GPA tối thiểu"
             type="number"
