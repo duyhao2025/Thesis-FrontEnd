@@ -58,3 +58,51 @@ export interface ApiResponse<T> {
   message?: string;
   errors?: Record<string, string[]>;
 }
+
+// ============================================================
+// Notification
+// ============================================================
+export interface NotificationResponse {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  referenceId?: string;
+  createdAt: string;
+  readAt?: string;
+}
+
+// ============================================================
+// Group Invitation
+// ============================================================
+export interface GroupInvitationResponse {
+  id: string;
+  groupId: string;
+  groupName: string;
+  inviterId: string;
+  inviterFullName: string;
+  inviterEmail: string;
+  inviteeId: string;
+  inviteeFullName: string;
+  inviteeEmail: string;
+  title: string;
+  message: string;
+  status: InvitationStatus;
+  rejectionReason?: string;
+  createdAt: string;
+  respondedAt?: string;
+}
+
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "REJECTED" | "CANCELLED" | "EXPIRED";
+
+export interface SendInvitationRequest {
+  studentId: string;
+  title: string;
+  message: string;
+}
+
+export interface RespondToInvitationRequest {
+  accepted: boolean;
+  rejectionReason?: string;
+}

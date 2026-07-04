@@ -27,6 +27,8 @@ export default function RegistrationPeriodsPage() {
     startDate: "",
     endDate: "",
     status: "DRAFT",
+    minGPA: 0,
+    maxStudentsPerTopic: 3,
     maxTopicPerLecturer: 5,
     maxStudentPerGroup: 3,
   });
@@ -53,6 +55,8 @@ export default function RegistrationPeriodsPage() {
       startDate: "",
       endDate: "",
       status: "DRAFT",
+      minGPA: 0,
+      maxStudentsPerTopic: 3,
       maxTopicPerLecturer: 5,
       maxStudentPerGroup: 3,
     });
@@ -62,11 +66,13 @@ export default function RegistrationPeriodsPage() {
   const openEdit = (period: RegistrationPeriodResponse) => {
     setEditing(period);
     setForm({
-      semesterId: period.semesterId,
+      semesterId: period.semesterId || "",
       name: period.name,
       startDate: period.startDate.split("T")[0],
       endDate: period.endDate.split("T")[0],
       status: period.status,
+      minGPA: period.minGPA,
+      maxStudentsPerTopic: period.maxStudentsPerTopic,
       maxTopicPerLecturer: period.maxTopicPerLecturer,
       maxStudentPerGroup: period.maxStudentPerGroup,
     });
@@ -74,23 +80,31 @@ export default function RegistrationPeriodsPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name || !form.startDate || !form.endDate || !form.semesterId) {
+    if (!form.name || !form.startDate || !form.endDate) {
       showToast("error", "Vui lòng điền đầy đủ thông tin");
       return;
     }
     setSubmitting(true);
     try {
+      const payload = {
+        ...form,
+        semesterId: form.semesterId || undefined,
+      };
       if (editing) {
-        await api.put(`/registration-periods/${editing.id}`, form);
+        await api.put(`/registration-periods/${editing.id}`, payload);
         showToast("success", "Cập nhật thành công!");
       } else {
-        await api.post("/registration-periods", form);
+        await api.post("/registration-periods", payload);
         showToast("success", "Tạo đợt thành công!");
       }
       setShowModal(false);
       load();
-    } catch {
-      showToast("error", "Thao tác thất bại.");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
+      const message = axiosErr?.response?.data?.message
+        || (axiosErr?.response?.status === 409 ? "Xung đột dữ liệu." : "Thao tác thất bại.")
+        || "Thao tác thất bại.";
+      showToast("error", message);
     } finally {
       setSubmitting(false);
     }
@@ -108,16 +122,31 @@ export default function RegistrationPeriodsPage() {
   };
 
   const handleToggleStatus = async (id: string, currentStatus: string) => {
-    const newStatus = currentStatus === "OPEN" ? "CLOSED" : "OPEN";
     const period = periods.find((p) => p.id === id);
     if (!period) return;
+
+    if (currentStatus === "OPEN") {
+      try {
+        await api.post(`/registration-periods/${id}/close`);
+        showToast("success", "Đã đóng đợt đăng ký!");
+        load();
+      } catch (err: unknown) {
+        const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Đóng đợt thất bại.";
+        showToast("error", message);
+      }
+      return;
+    }
+
+    const newStatus = currentStatus === "CLOSED" ? "OPEN" : "OPEN";
     try {
       await api.put(`/registration-periods/${id}`, {
-        semesterId: period.semesterId,
+        semesterId: period.semesterId || undefined,
         name: period.name,
         startDate: period.startDate.split("T")[0],
         endDate: period.endDate.split("T")[0],
         status: newStatus,
+        minGPA: period.minGPA,
+        maxStudentsPerTopic: period.maxStudentsPerTopic,
         maxTopicPerLecturer: period.maxTopicPerLecturer,
         maxStudentPerGroup: period.maxStudentPerGroup,
       });
@@ -241,7 +270,7 @@ export default function RegistrationPeriodsPage() {
               { value: "CLOSED", label: "Đóng" },
             ]}
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <Input
               label="Đề tài tối đa/GV"
               type="number"
@@ -258,7 +287,24 @@ export default function RegistrationPeriodsPage() {
               value={form.maxStudentPerGroup}
               onChange={(e) => setForm({ ...form, maxStudentPerGroup: Number(e.target.value) })}
             />
+            <Input
+              label="SV tối đa/đề tài"
+              type="number"
+              min={1}
+              max={10}
+              value={form.maxStudentsPerTopic}
+              onChange={(e) => setForm({ ...form, maxStudentsPerTopic: Number(e.target.value) })}
+            />
           </div>
+          <Input
+            label="Điểm GPA tối thiểu"
+            type="number"
+            min={0}
+            max={4}
+            step={0.1}
+            value={form.minGPA}
+            onChange={(e) => setForm({ ...form, minGPA: Number(e.target.value) })}
+          />
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
             <Button isLoading={submitting} onClick={handleSubmit}>

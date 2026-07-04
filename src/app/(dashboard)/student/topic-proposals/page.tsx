@@ -33,6 +33,7 @@ export default function TopicProposalsPage() {
     scope: "",
     suggestedLecturerId: "",
     topicCategoryId: "",
+    maxStudents: 3,
   });
 
   const loadProposals = () => {
@@ -76,6 +77,7 @@ export default function TopicProposalsPage() {
         description: form.description,
         objective: form.objective,
         scope: form.scope,
+        maxStudents: form.maxStudents,
       };
       if (form.suggestedLecturerId) {
         payload.suggestedLecturerId = form.suggestedLecturerId;
@@ -86,7 +88,7 @@ export default function TopicProposalsPage() {
       await api.post("/student/topic-proposals", payload);
       showToast("success", "Gửi đề xuất thành công!");
       setShowModal(false);
-      setForm({ title: "", description: "", objective: "", scope: "", suggestedLecturerId: "", topicCategoryId: "" });
+      setForm({ title: "", description: "", objective: "", scope: "", suggestedLecturerId: "", topicCategoryId: "", maxStudents: 3 });
       loadProposals();
     } catch (err: unknown) {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Gửi đề xuất thất bại.";
@@ -149,6 +151,7 @@ export default function TopicProposalsPage() {
             scope: "",
             suggestedLecturerId: "",
             topicCategoryId: "",
+            maxStudents: 3,
           });
           setShowModal(true);
         }}>
@@ -205,6 +208,17 @@ export default function TopicProposalsPage() {
               placeholder="Chọn danh mục (không bắt buộc)"
             />
           )}
+          <Select
+            label="Số sinh viên tối đa trong nhóm"
+            value={String(form.maxStudents)}
+            onChange={(e) => setForm({ ...form, maxStudents: Number(e.target.value) })}
+            options={[
+              { value: "1", label: "1 sinh viên (cá nhân)" },
+              { value: "2", label: "2 sinh viên" },
+              { value: "3", label: "3 sinh viên" },
+              { value: "4", label: "4 sinh viên" },
+            ]}
+          />
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
             <Button isLoading={submitting} onClick={handleSubmit}>Gửi đề xuất</Button>

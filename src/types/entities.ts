@@ -15,6 +15,31 @@ export interface TopicRegistrationResponse {
   submittedAt: string;
 }
 
+export interface AvailableTopicResponse {
+  id: string;
+  title: string;
+  description: string;
+  objective: string;
+  scope: string;
+  expectedOutput: string;
+  lecturerName: string;
+  departmentName: string;
+  majorName: string;
+  topicCategoryName: string;
+  maxStudents: number;
+  currentStudents: number;
+  availableSlots: number;
+  createdAt: string;
+}
+
+export interface AvailableTopicsResponse {
+  topics: AvailableTopicResponse[];
+  totalCount: number;
+  isRegistrationPeriodOpen: boolean;
+  registrationPeriodName?: string;
+  registrationPeriodEndDate?: string;
+}
+
 // Topic Proposal
 export type TopicProposalStatus = "PENDING" | "LECTURER_APPROVED" | "APPROVED" | "REJECTED";
 
@@ -33,25 +58,19 @@ export interface TopicProposalResponse {
   studentName: string;
   suggestedLecturerId?: string;
   suggestedLecturerName?: string;
+  lecturerId?: string;
+  lecturerName?: string;
+  topicCategoryId?: string;
+  topicCategoryName?: string;
   title: string;
   description: string;
   objective: string;
   scope: string;
-  status: TopicProposalStatus;
-  reason?: string;
-  rejectReason?: string;
+  maxStudents: number;
+  status: string;
   rejectionReason?: string;
-  reviewedByName?: string;
-  reviewedAt?: string;
   createdAt: string;
-  updatedAt: string;
-  topicCategoryId?: string;
-  topicCategoryName?: string;
-  departmentId?: string;
-  departmentName?: string;
-  majorId?: string;
-  majorName?: string;
-  maxStudents?: number;
+  updatedAt?: string;
 }
 
 // Progress Log
@@ -130,6 +149,8 @@ export interface TopicResponse {
   scope: string;
   lecturerId: string;
   lecturerName: string;
+  supervisingLecturerId?: string;
+  supervisingLecturerName?: string;
   departmentId: string;
   departmentName: string;
   majorId: string;
@@ -152,19 +173,95 @@ export interface TopicCategoryResponse {
 // Registration Period
 export type RegistrationPeriodStatus = "DRAFT" | "OPEN" | "CLOSED" | "ARCHIVED";
 
+export type SemesterStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
+
+export interface SemesterResponse {
+  id: string;
+  name: string;
+  year: number;
+  term: number;
+  startDate: string;
+  endDate: string;
+  status: SemesterStatus;
+}
+
 export interface RegistrationPeriodResponse {
   id: string;
-  semesterId: string;
+  semesterId?: string;
   semesterName: string;
   name: string;
   startDate: string;
   endDate: string;
   status: RegistrationPeriodStatus;
+  minGPA: number;
+  maxStudentsPerTopic: number;
   maxTopicPerLecturer: number;
   maxStudentPerGroup: number;
 }
 
-// Milestone
+// Milestone Submission - Student view
+export interface StudentMilestoneSubmissionResponse {
+  id: string;
+  milestoneId: string;
+  milestoneTitle: string;
+  milestoneDeadline: string;
+  topicId: string;
+  topicTitle: string;
+  studentId: string;
+  studentFullName: string;
+  title: string;
+  fileUrl: string;
+  feedback?: string;
+  submittedAt: string;
+  status: string;
+  version: number;
+  revisionDeadline?: string;
+  canResubmit: boolean;
+  versions: SubmissionVersionResponse[];
+}
+
+export interface StudentMilestoneWithSubmissionResponse {
+  id: string;
+  title: string;
+  deadline: string;
+  requiredSubmission: boolean;
+  isCompleted: boolean;
+  topicId: string;
+  topicTitle: string;
+  submissionId?: string;
+  submissionTitle?: string;
+  submissionFileUrl?: string;
+  submittedAt?: string;
+  submissionStatus?: string;
+  feedback?: string;
+  canResubmit?: boolean;
+}
+
+export interface SubmissionVersionResponse {
+  id: string;
+  version: number;
+  title: string;
+  fileUrl: string;
+  feedback?: string;
+  submittedAt: string;
+  status: string;
+}
+
+// Milestone - Lecturer view
+export interface MilestoneDetail {
+  id: string;
+  title: string;
+  deadline: string;
+  requiredSubmission: boolean;
+  isCompleted: boolean;
+  submissionId?: string;
+  submissionTitle?: string;
+  submissionFileUrl?: string;
+  submittedAt?: string;
+  submissionStatus?: string;
+  feedback?: string;
+}
+
 export interface MilestoneResponse {
   id: string;
   title: string;
@@ -183,6 +280,16 @@ export interface ProgressPlanResponse {
   milestones: MilestoneResponse[];
 }
 
+export interface ProgressPlanDetailResponse {
+  id: string;
+  topicId: string;
+  topicTitle: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+  milestones: MilestoneDetail[];
+}
+
 // Lecturer student list
 export interface StudentGroupResponse {
   id: string;
@@ -194,4 +301,97 @@ export interface StudentGroupResponse {
   }[];
   topicId?: string;
   topicTitle?: string;
+}
+
+// ===== HOD - Supervisor Assignment / Gale-Shapley =====
+export interface LecturerWorkloadItem {
+  topicId: string;
+  topicTitle: string;
+  assignedAt: string;
+}
+
+export interface LecturerWorkload {
+  lecturerId: string;
+  lecturerFullName: string;
+  lecturerEmail: string;
+  assignedCount: number;
+  topics: LecturerWorkloadItem[];
+}
+
+export interface MatchingItem {
+  topicId: string;
+  topicTitle: string;
+  lecturerId: string;
+  lecturerFullName: string;
+  workloadAfter: number;
+  priorityOrder: number;
+}
+
+export interface UnmatchedTopic {
+  topicId: string;
+  topicTitle: string;
+  reason: string;
+}
+
+export interface GaleShapleyPreview {
+  matchings: MatchingItem[];
+  unmatched: UnmatchedTopic[];
+  lecturerWorkloadAfter: Record<string, number>;
+}
+
+// ===== HOD - Council =====
+export interface CouncilMemberItem {
+  id: string;
+  lecturerId: string;
+  lecturerFullName: string;
+  lecturerEmail: string;
+  role: string;
+  createdAt: string;
+}
+
+export interface CouncilItem {
+  id: string;
+  name: string;
+  defenseDate: string;
+  location: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
+  members: CouncilMemberItem[];
+}
+
+export interface CouncilTopicItem {
+  assignmentId: string;
+  topicId: string;
+  topicTitle: string;
+  studentGroupName: string;
+  status: string;
+  assignedAt: string;
+  evaluatorNames: string[];
+}
+
+// ===== Student group self-management =====
+export interface GroupMemberResponse {
+  id: string;
+  studentId: string;
+  fullName: string;
+  email: string;
+  isLeader: boolean;
+}
+
+export interface MyGroupResponse {
+  id: string;
+  topicId?: string | null;
+  topicTitle?: string | null;
+  leaderId: string;
+  leaderFullName: string;
+  status: string;
+  createdAt: string;
+  members: GroupMemberResponse[];
+}
+
+export interface StudentLookupItem {
+  id: string;
+  fullName: string;
+  email: string;
 }

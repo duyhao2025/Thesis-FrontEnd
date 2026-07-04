@@ -36,7 +36,7 @@ export default function ProgressLogsPage() {
       const registrations = res.data || [];
       // Find approved registration
       const approved = registrations.find(
-        (r: { status: string }) => r.status === "Approved" || r.status === "APPROVED"
+        (r: { status: string }) => r.status?.toUpperCase() === "APPROVED"
       );
       if (approved) {
         setTopicId(approved.topicId);

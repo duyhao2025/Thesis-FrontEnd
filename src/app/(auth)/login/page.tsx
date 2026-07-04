@@ -25,7 +25,7 @@ export default function LoginPage() {
     Student: "/student/dashboard",
     Lecturer: "/lecturer/dashboard",
     FacultyStaff: "/faculty-staff/dashboard",
-    HeadOfDepartment: "/lecturer/dashboard",
+    HeadOfDepartment: "/head/dashboard",
     Admin: "/admin/dashboard",
   };
 
