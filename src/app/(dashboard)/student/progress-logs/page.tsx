@@ -90,13 +90,17 @@ export default function ProgressLogsPage() {
         topicId,
         content: form.content,
         completionPercentage: form.completionPercentage,
+        Status: "Submitted",
       });
       showToast("success", "Thêm nhật ký thành công!");
       setShowModal(false);
       setForm({ topicId, content: "", completionPercentage: 0 });
       loadLogs(topicId);
-    } catch {
-      showToast("error", "Thêm nhật ký thất bại.");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const detail = axiosErr?.response?.data?.message || axiosErr?.message || "Lỗi không xác định";
+      console.error("create progress log error:", axiosErr?.response?.data || err);
+      showToast("error", `Thêm nhật ký thất bại: ${detail}`);
     } finally {
       setSubmitting(false);
     }

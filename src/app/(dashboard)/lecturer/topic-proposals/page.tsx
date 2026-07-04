@@ -26,9 +26,16 @@ export default function LecturerTopicProposalsPage() {
 
   const load = () => {
     setLoading(true);
-    const url = filterStatus ? `/lecturer/topic-proposals?status=${filterStatus}` : "/lecturer/topic-proposals";
+    const url = filterStatus === "PENDING"
+      ? "/lecturer/topic-proposals/pending"
+      : filterStatus === "LECTURER_APPROVED"
+        ? `/lecturer/topic-proposals?status=${filterStatus}`
+        : "/lecturer/topic-proposals";
     api.get(url)
-      .then((res) => setProposals(res.data || []))
+      .then((res) => {
+        const data = res?.data ?? [];
+        setProposals(Array.isArray(data) ? data : []);
+      })
       .catch(() => showToast("error", "Không thể tải đề xuất"))
       .finally(() => setLoading(false));
   };
@@ -36,11 +43,11 @@ export default function LecturerTopicProposalsPage() {
   useEffect(() => { load(); }, [filterStatus]);
 
   const handleApprove = async (id: string) => {
-    if (!confirm("Duyệt đề xuất này?")) return;
+    if (!confirm("Duyệt đề xuất này? Đề tài sẽ chuyển sang chờ Trưởng bộ môn phê duyệt.")) return;
     setActionId(id);
     try {
       await api.put(`/lecturer/topic-proposals/${id}/approve`, { comment: "" });
-      showToast("success", "Đề xuất đã được duyệt!");
+      showToast("success", "Đề xuất đã được duyệt! Đang chờ Trưởng bộ môn phê duyệt.");
       load();
     } catch {
       showToast("error", "Thao tác thất bại.");
@@ -152,6 +159,7 @@ export default function LecturerTopicProposalsPage() {
         >
           <option value="">Tất cả</option>
           <option value="PENDING">Chờ duyệt</option>
+          <option value="LECTURER_APPROVED">GV đã duyệt</option>
           <option value="APPROVED">Đã duyệt</option>
           <option value="REJECTED">Từ chối</option>
         </select>
@@ -186,6 +194,22 @@ export default function LecturerTopicProposalsPage() {
                 <p className="text-sm text-gray-700">{selectedProposal.scope}</p>
               </div>
             )}
+            {selectedProposal.status === "REJECTED" &&
+              (selectedProposal.reason || selectedProposal.rejectReason || selectedProposal.rejectionReason) && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+                  <label className="text-xs font-semibold text-red-700">Lý do từ chối</label>
+                  <p className="mt-1 text-sm text-red-900">
+                    {selectedProposal.reason || selectedProposal.rejectReason || selectedProposal.rejectionReason}
+                  </p>
+                  {(selectedProposal.reviewedByName || selectedProposal.reviewedAt) && (
+                    <p className="mt-1 text-xs text-red-600">
+                      Bởi: {selectedProposal.reviewedByName || "—"}
+                      {selectedProposal.reviewedAt &&
+                        ` • ${format(new Date(selectedProposal.reviewedAt), "dd/MM/yyyy HH:mm", { locale: vi })}`}
+                    </p>
+                  )}
+                </div>
+              )}
             <div className="flex justify-end gap-3">
               <Button variant="outline" onClick={() => setShowDetailModal(false)}>Đóng</Button>
               {selectedProposal.status === "PENDING" && (
