@@ -71,6 +71,10 @@ export interface TopicProposalResponse {
   rejectionReason?: string;
   createdAt: string;
   updatedAt?: string;
+  reason?: string; // For lecturer rejection reason
+  reviewedByName?: string; // For lecturer rejection reason
+  reviewedAt?: string; // For lecturer rejection reason
+  rejectReason?: string; // For HoD rejection reason
 }
 
 // Progress Log
