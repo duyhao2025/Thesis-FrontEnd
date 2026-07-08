@@ -10,14 +10,12 @@ import {
   BookMarked,
   GraduationCap,
   BookOpen,
-  CheckCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardStats {
   pendingTopics: number;
-  pendingProposals: number;
   councils: number;
   rubrics: number;
   lecturers: number;
@@ -28,7 +26,6 @@ export default function HeadDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     pendingTopics: 0,
-    pendingProposals: 0,
     councils: 0,
     rubrics: 0,
     lecturers: 0,
@@ -37,43 +34,22 @@ export default function HeadDashboard() {
   useEffect(() => {
     Promise.all([
       api.get("/topics?status=APPROVED").catch(() => ({ data: [] })),
-      api.get("/head/topic-proposals/lecturer-approved").catch(() => ({ data: [] })),
       api.get("/councils").catch(() => ({ data: [] })),
       api.get("/rubrics").catch(() => ({ data: [] })),
       api.get("/shared/lecturers").catch(() => ({ data: [] })),
-    ]).then(([topicsRes, proposalsRes, councilsRes, rubricsRes, lecturersRes]) => {
+    ]).then(([topicsRes, councilsRes, rubricsRes, lecturersRes]) => {
       const topics = topicsRes.data || [];
-      const supervisorIds = new Set<string>();
-      api
-        .get("/assignments/workload")
-        .catch(() => ({ data: [] }))
-        .then((saRes) => {
-          const items = saRes.data || [];
-          items.forEach((it: { topicId?: string }) => {
-            if (it.topicId) supervisorIds.add(it.topicId);
-          });
-          setStats({
-            pendingTopics: topics.filter(
-              (t: { id: string }) => !supervisorIds.has(t.id)
-            ).length,
-            pendingProposals: (proposalsRes.data || []).length,
-            councils: (councilsRes.data || []).length,
-            rubrics: (rubricsRes.data || []).length,
-            lecturers: (lecturersRes.data || []).length,
-          });
-          setLoading(false);
-        });
+      setStats({
+        pendingTopics: topics.length,
+        councils: (councilsRes.data || []).length,
+        rubrics: (rubricsRes.data || []).length,
+        lecturers: (lecturersRes.data || []).length,
+      });
+      setLoading(false);
     });
   }, []);
 
   const cards = [
-    {
-      label: "Đề xuất chờ duyệt",
-      value: stats.pendingProposals,
-      icon: <CheckCircle className="h-6 w-6" />,
-      colorClass: "bg-green-50 text-green-600",
-      href: "/head/topic-proposals",
-    },
     {
       label: "Đề tài chờ phân công",
       value: stats.pendingTopics,
@@ -152,11 +128,11 @@ export default function HeadDashboard() {
 
       <Card title="Hành động nhanh">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Link href="/head/topic-proposals">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-green-200 hover:bg-green-50">
-              <CheckCircle className="mx-auto mb-2 h-6 w-6 text-green-600" />
+          <Link href="/head/assignments">
+            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-amber-200 hover:bg-amber-50">
+              <ClipboardCheck className="mx-auto mb-2 h-6 w-6 text-amber-600" />
               <p className="text-sm font-medium text-gray-700">
-                Duyệt đề tài
+                Phân công giảng viên
               </p>
             </div>
           </Link>

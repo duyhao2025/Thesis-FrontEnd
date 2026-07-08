@@ -16,6 +16,7 @@ interface ValidUserRow {
   role: string;
   departmentCode?: string;
   majorCode?: string;
+  majorName?: string;
   isSelected: boolean;
 }
 
@@ -27,6 +28,7 @@ interface InvalidUserRow {
   role: string;
   departmentCode?: string;
   majorCode?: string;
+  majorName?: string;
   errorMessage: string;
 }
 
@@ -151,6 +153,7 @@ export default function ImportUsersModal({ isOpen, onClose, onImportComplete }: 
         role: u.role,
         departmentCode: u.departmentCode,
         majorCode: u.majorCode,
+        majorName: u.majorName,
       }));
 
       const response = await api.post("/admin/users/import/execute", { users: usersToImport });
@@ -230,7 +233,16 @@ export default function ImportUsersModal({ isOpen, onClose, onImportComplete }: 
 
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                File mẫu Excel chứa các cột: Họ tên, Email, Mã người dùng (MSSV/MGV), Vai trò, Mã Khoa, Mã Ngành
+                File mẫu Excel chứa các cột: Họ tên, Email, Mã người dùng, Vai trò, Mã Khoa, <strong>Ngành</strong>
+                <br />
+                <span className="text-xs text-gray-500">
+                  Cột <strong>Ngành</strong> có thể điền một trong các dạng:
+                  <code className="mx-1 rounded bg-gray-100 px-1">CNPM-Công nghệ phần mềm</code>
+                  hoặc chỉ
+                  <code className="mx-1 rounded bg-gray-100 px-1">CNPM</code>
+                  hoặc chỉ
+                  <code className="mx-1 rounded bg-gray-100 px-1">Công nghệ phần mềm</code>
+                </span>
               </div>
               <Button variant="outline" size="sm" onClick={handleDownloadTemplate}>
                 <Download className="h-4 w-4" />
@@ -267,49 +279,65 @@ export default function ImportUsersModal({ isOpen, onClose, onImportComplete }: 
                     <th className="px-3 py-2 text-left font-medium text-gray-600">Email</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-600">Mã</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-600">Vai trò</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Mã Khoa</th>
+                    <th className="px-3 py-2 text-left font-medium text-gray-600">Ngành</th>
                     <th className="px-3 py-2 text-left font-medium text-gray-600">Trạng thái</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {preview.validUsers.map((user) => (
-                    <tr key={user.rowNumber} className={user.isSelected ? "bg-white" : "bg-gray-50"}>
-                      <td className="px-3 py-2">
-                        <input
-                          type="checkbox"
-                          checked={user.isSelected}
-                          onChange={() => handleToggleUser(user.rowNumber)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </td>
-                      <td className="px-3 py-2 text-gray-500">{user.rowNumber - 1}</td>
-                      <td className="px-3 py-2 font-medium text-gray-900">{user.fullName}</td>
-                      <td className="px-3 py-2 text-gray-600">{user.email}</td>
-                      <td className="px-3 py-2 text-gray-500">{user.userCode || "-"}</td>
-                      <td className="px-3 py-2 text-gray-600">{roleLabels[user.role] || user.role}</td>
-                      <td className="px-3 py-2">
-                        <span className="inline-flex items-center gap-1 text-green-600">
-                          <CheckCircle className="h-4 w-4" />
-                          Hợp lệ
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {preview.invalidRows.map((user) => (
-                    <tr key={user.rowNumber} className="bg-red-50">
-                      <td className="px-3 py-2"></td>
-                      <td className="px-3 py-2 text-gray-500">{user.rowNumber - 1}</td>
-                      <td className="px-3 py-2 font-medium text-gray-900">{user.fullName || "(trống)"}</td>
-                      <td className="px-3 py-2 text-gray-600">{user.email || "(trống)"}</td>
-                      <td className="px-3 py-2 text-gray-500">{user.userCode || "-"}</td>
-                      <td className="px-3 py-2 text-gray-600">{user.role || "(trống)"}</td>
-                      <td className="px-3 py-2">
-                        <span className="inline-flex items-center gap-1 text-red-600">
-                          <AlertCircle className="h-4 w-4" />
-                          {user.errorMessage}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {preview.validUsers.map((user) => {
+                    const majorDisplay = user.majorCode
+                      ? `${user.majorCode}${user.majorName ? ` - ${user.majorName}` : ""}`
+                      : user.majorName || "-";
+                    return (
+                      <tr key={user.rowNumber} className={user.isSelected ? "bg-white" : "bg-gray-50"}>
+                        <td className="px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={user.isSelected}
+                            onChange={() => handleToggleUser(user.rowNumber)}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </td>
+                        <td className="px-3 py-2 text-gray-500">{user.rowNumber - 1}</td>
+                        <td className="px-3 py-2 font-medium text-gray-900">{user.fullName}</td>
+                        <td className="px-3 py-2 text-gray-600">{user.email}</td>
+                        <td className="px-3 py-2 text-gray-500">{user.userCode || "-"}</td>
+                        <td className="px-3 py-2 text-gray-600">{roleLabels[user.role] || user.role}</td>
+                        <td className="px-3 py-2 text-gray-500">{user.departmentCode || "-"}</td>
+                        <td className="px-3 py-2 text-gray-700">{majorDisplay}</td>
+                        <td className="px-3 py-2">
+                          <span className="inline-flex items-center gap-1 text-green-600">
+                            <CheckCircle className="h-4 w-4" />
+                            Hợp lệ
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {preview.invalidRows.map((user) => {
+                    const majorDisplay = user.majorCode
+                      ? `${user.majorCode}${user.majorName ? ` - ${user.majorName}` : ""}`
+                      : user.majorName || "-";
+                    return (
+                      <tr key={user.rowNumber} className="bg-red-50">
+                        <td className="px-3 py-2"></td>
+                        <td className="px-3 py-2 text-gray-500">{user.rowNumber - 1}</td>
+                        <td className="px-3 py-2 font-medium text-gray-900">{user.fullName || "(trống)"}</td>
+                        <td className="px-3 py-2 text-gray-600">{user.email || "(trống)"}</td>
+                        <td className="px-3 py-2 text-gray-500">{user.userCode || "-"}</td>
+                        <td className="px-3 py-2 text-gray-600">{user.role || "(trống)"}</td>
+                        <td className="px-3 py-2 text-gray-500">{user.departmentCode || "-"}</td>
+                        <td className="px-3 py-2 text-gray-700">{majorDisplay}</td>
+                        <td className="px-3 py-2">
+                          <span className="inline-flex items-center gap-1 text-red-600">
+                            <AlertCircle className="h-4 w-4" />
+                            {user.errorMessage}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

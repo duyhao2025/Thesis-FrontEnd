@@ -205,6 +205,11 @@ export default function NotificationsPage() {
             if ((n.type === "MilestoneTask" || n.type === "MilestoneFeedback" || n.type === "MilestoneCompleted") && n.referenceId) {
               router.push(`/student/periodic-reports?milestone=${n.referenceId}`);
             }
+            // Progress log feedback - jump to the Nhật ký tiến độ page and
+            // anchor the specific log so the student sees the lecturer reply.
+            if (n.type === "ProgressLogFeedback" && n.referenceId) {
+              router.push(`/student/progress-logs?log=${n.referenceId}`);
+            }
           }}
           formatDate={formatDate}
         />

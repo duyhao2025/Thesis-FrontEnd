@@ -13,11 +13,30 @@ import { Plus, Pencil, Trash2, Users, Search, Upload, Download } from "lucide-re
 import { UserRole } from "@/types/api";
 import { exportUsers, saveBlob } from "@/lib/admin-api";
 
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface Major {
+  id: string;
+  name: string;
+  code: string;
+  departmentId: string;
+  departmentName: string;
+}
+
 interface AdminUser {
   id: string;
   email: string;
   name: string;
   role: UserRole;
+  departmentId?: string;
+  departmentName?: string;
+  majorId?: string;
+  majorName?: string;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -29,8 +48,14 @@ const roleLabels: Record<UserRole, string> = {
   Admin: "Quản trị viên",
 };
 
+const rolesRequiringDepartment = ["Student", "Lecturer", "FacultyStaff"];
+const rolesAllowingMajor = ["Student", "Lecturer", "FacultyStaff", "HeadOfDepartment"];
+const rolesRequiringMajor = ["Student"];
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [majors, setMajors] = useState<Major[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -48,12 +73,22 @@ export default function AdminUsersPage() {
     name: "",
     password: "",
     role: "Student" as UserRole,
+    departmentId: "",
+    majorId: "",
   });
 
   const load = () => {
     setLoading(true);
-    api.get("/admin/users")
-      .then((res) => setUsers(res.data || []))
+    Promise.all([
+      api.get("/admin/users"),
+      api.get("/admin/departments"),
+      api.get("/admin/majors"),
+    ])
+      .then(([usersRes, deptsRes, majorsRes]) => {
+        setUsers(usersRes.data || []);
+        setDepartments(deptsRes.data || []);
+        setMajors(majorsRes.data || []);
+      })
       .catch(() => {
         setUsers([]);
       })
@@ -62,15 +97,34 @@ export default function AdminUsersPage() {
 
   useEffect(() => { load(); }, []);
 
+  const loadMajorsByDepartment = (departmentId: string) => {
+    if (departmentId) {
+      api.get(`/admin/majors?departmentId=${departmentId}`)
+        .then((res) => setMajors(res.data || []))
+        .catch(() => {});
+    }
+  };
+
   const openCreate = () => {
     setEditingUser(null);
-    setForm({ email: "", name: "", password: "", role: "Student" });
+    setForm({ email: "", name: "", password: "", role: "Student", departmentId: "", majorId: "" });
     setShowModal(true);
   };
 
   const openEdit = (user: AdminUser) => {
     setEditingUser(user);
-    setForm({ email: user.email, name: user.name, password: "", role: user.role });
+    setForm({
+      email: user.email,
+      name: user.name,
+      password: "",
+      role: user.role,
+      departmentId: user.departmentId || "",
+      majorId: user.majorId || "",
+    });
+    // Load majors for the user's department
+    if (user.departmentId) {
+      loadMajorsByDepartment(user.departmentId);
+    }
     setShowModal(true);
   };
 
@@ -79,18 +133,54 @@ export default function AdminUsersPage() {
     setShowDeleteModal(true);
   };
 
+  const handleRoleChange = (newRole: UserRole) => {
+    setForm({ ...form, role: newRole, majorId: "" }); // Reset major when role changes
+    if (rolesRequiringDepartment.includes(newRole) && departments.length > 0) {
+      setForm((prev) => ({ ...prev, role: newRole, departmentId: departments[0].id }));
+    } else {
+      setForm((prev) => ({ ...prev, role: newRole, departmentId: "", majorId: "" }));
+    }
+  };
+
+  const handleDepartmentChange = (departmentId: string) => {
+    setForm({ ...form, departmentId, majorId: "" }); // Reset major when department changes
+    if (departmentId) {
+      api.get(`/admin/majors?departmentId=${departmentId}`)
+        .then((res) => setMajors(res.data || []))
+        .catch(() => {});
+    }
+  };
+
   const handleSubmit = async () => {
     if (!form.email || !form.name || (!editingUser && !form.password)) {
       showToast("error", "Vui lòng điền đầy đủ thông tin");
       return;
     }
+    if (rolesRequiringDepartment.includes(form.role) && !form.departmentId) {
+      showToast("error", "Vui lòng chọn Khoa");
+      return;
+    }
+    if (rolesRequiringMajor.includes(form.role) && !form.majorId) {
+      showToast("error", "Vui lòng chọn Chuyên ngành");
+      return;
+    }
     setSubmitting(true);
     try {
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        email: form.email,
+        role: form.role,
+        departmentId: rolesRequiringDepartment.includes(form.role) ? form.departmentId : null,
+        majorId: rolesAllowingMajor.includes(form.role) && form.majorId ? form.majorId : null,
+      };
+      if (!editingUser) {
+        payload.password = form.password;
+      }
       if (editingUser) {
-        await api.put(`/admin/users/${editingUser.id}`, { name: form.name, email: form.email, role: form.role });
+        await api.put(`/admin/users/${editingUser.id}`, payload);
         showToast("success", "Cập nhật người dùng thành công!");
       } else {
-        await api.post("/admin/users", form);
+        await api.post("/admin/users", payload);
         showToast("success", "Tạo người dùng thành công!");
       }
       setShowModal(false);
@@ -171,6 +261,16 @@ export default function AdminUsersPage() {
       ),
     },
     {
+      key: "department",
+      header: "Khoa",
+      render: (r: AdminUser) => r.departmentName || <span className="text-gray-400">-</span>,
+    },
+    {
+      key: "major",
+      header: "Ngành",
+      render: (r: AdminUser) => r.majorName || <span className="text-gray-400">-</span>,
+    },
+    {
       key: "role",
       header: "Vai trò",
       render: (r: AdminUser) => (
@@ -186,6 +286,15 @@ export default function AdminUsersPage() {
           onChange={(e) => handleChangeRole(r.id, e.target.value as UserRole)}
           className="text-xs py-1"
         />
+      ),
+    },
+    {
+      key: "isActive",
+      header: "Trạng thái",
+      render: (r: AdminUser) => (
+        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${r.isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+          {r.isActive ? "Hoạt động" : "Không hoạt động"}
+        </span>
       ),
     },
     {
@@ -297,7 +406,7 @@ export default function AdminUsersPage() {
           <Select
             label="Vai trò"
             value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value as UserRole })}
+            onChange={(e) => handleRoleChange(e.target.value as UserRole)}
             options={[
               { value: "Student", label: "Sinh viên" },
               { value: "Lecturer", label: "Giảng viên" },
@@ -306,6 +415,30 @@ export default function AdminUsersPage() {
               { value: "Admin", label: "Quản trị viên" },
             ]}
           />
+          {rolesRequiringDepartment.includes(form.role) && (
+            <Select
+              label="Khoa *"
+              value={form.departmentId}
+              onChange={(e) => handleDepartmentChange(e.target.value)}
+              options={[
+                { value: "", label: "Chọn khoa" },
+                ...departments.map((d) => ({ value: d.id, label: `${d.code} - ${d.name}` })),
+              ]}
+            />
+          )}
+          {rolesAllowingMajor.includes(form.role) && form.departmentId && (
+            <Select
+              label={rolesRequiringMajor.includes(form.role) ? "Chuyên ngành *" : "Chuyên ngành (không bắt buộc)"}
+              value={form.majorId}
+              onChange={(e) => setForm({ ...form, majorId: e.target.value })}
+              options={[
+                { value: "", label: rolesRequiringMajor.includes(form.role) ? "Chọn chuyên ngành" : "(Không chọn)" },
+                ...majors
+                  .filter((m) => m.departmentId === form.departmentId)
+                  .map((m) => ({ value: m.id, label: `${m.code} - ${m.name}` })),
+              ]}
+            />
+          )}
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
             <Button isLoading={submitting} onClick={handleSubmit}>

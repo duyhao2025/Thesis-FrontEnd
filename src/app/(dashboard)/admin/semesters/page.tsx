@@ -3,16 +3,16 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-export default function HeadTopicProposalsRedirectPage() {
+export default function AdminSemestersRedirectPage() {
   const router = useRouter();
   useEffect(() => {
-    // Approval flow is now handled by Faculty Staff.
-    router.replace("/faculty-staff/topic-proposals");
+    // Semester management is now done via Registration Periods by Faculty Staff.
+    router.replace("/faculty-staff/registration-periods");
   }, [router]);
 
   return (
     <div className="flex items-center justify-center py-12 text-gray-500">
-      Đang chuyển sang trang Nhân viên khoa...
+      Đang chuyển sang trang Đợt đăng ký...
     </div>
   );
 }

@@ -96,8 +96,21 @@ export interface ProgressLogResponse {
   content: string;
   completionPercentage: number;
   submittedAt: string;
-  Status?: ProgressLogStatus;
+  /** Latest lecturer feedback comment (if any). */
   lecturerFeedback?: string;
+  /** When the latest feedback was created (if any). */
+  lecturerFeedbackAt?: string;
+  /** Display name of the lecturer who gave feedback. */
+  lecturerFullName?: string;
+  /** All feedback entries (chronological). */
+  feedbacks?: ProgressLogFeedbackEntry[];
+}
+
+export interface ProgressLogFeedbackEntry {
+  id: string;
+  comment: string;
+  lecturerFullName: string;
+  createdAt: string;
 }
 
 // Lecturer Feedback
@@ -168,6 +181,11 @@ export interface TopicCategoryResponse {
   id: string;
   name: string;
   description: string;
+  departmentId?: string;
+  departmentName?: string;
+  majorId?: string;
+  majorName?: string;
+  createdByStaffName?: string;
 }
 
 // Registration Period
@@ -181,6 +199,13 @@ export interface RegistrationPeriodResponse {
   endDate: string;
   status: RegistrationPeriodStatus;
   minGPA: number;
+  maxStudentsPerTopic: number;
+  maxTopicPerLecturer: number;
+  maxStudentPerGroup: number;
+  departmentId?: string;
+  departmentName?: string;
+  majorId?: string;
+  majorName?: string;
 }
 
 // Milestone Submission - Student view
@@ -329,6 +354,8 @@ export interface CouncilMemberItem {
   lecturerId: string;
   lecturerFullName: string;
   lecturerEmail: string;
+  departmentName?: string | null;
+  majorName?: string | null;
   role: string;
   createdAt: string;
 }
@@ -352,6 +379,24 @@ export interface CouncilTopicItem {
   status: string;
   assignedAt: string;
   evaluatorNames: string[];
+}
+
+export interface LecturerOption {
+  id: string;
+  fullName: string;
+  email: string;
+  roleLabel: string;
+  departmentName: string;
+  majorName: string;
+  /** Other roles the lecturer already holds in active councils (for HoD conflict hint). */
+  currentCouncilRoles: string[];
+}
+
+export interface LecturerTopicOption {
+  id: string;
+  title: string;
+  status: string;
+  isPrimary: boolean;
 }
 
 // ===== Student group self-management =====

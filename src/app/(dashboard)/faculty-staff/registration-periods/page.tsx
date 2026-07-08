@@ -12,11 +12,26 @@ import { RegistrationPeriodResponse } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { Plus, Pencil, Trash2, CalendarDays } from "lucide-react";
 
-const TERM_OPTIONS = [
-  { value: "1", label: "Học kỳ 1" },
-  { value: "2", label: "Học kỳ 2" },
-  { value: "3", label: "Học kỳ 3" },
+interface SemesterOption {
+  code: string;
+  label: string;
+  term: number;
+}
+
+const SEMESTER_OPTIONS: SemesterOption[] = [
+  { code: "1A", label: "Học kỳ 1A (HK1 chính)", term: 1 },
+  { code: "1B", label: "Học kỳ 1B (HK1 hè)", term: 1 },
+  { code: "2A", label: "Học kỳ 2A (HK2 chính)", term: 2 },
+  { code: "2B", label: "Học kỳ 2B (HK2 hè)", term: 2 },
+  { code: "3", label: "Học kỳ 3 (HK hè)", term: 3 },
 ];
+
+const termLabel = (term: number): string => {
+  if (term === 1) return "HK1";
+  if (term === 2) return "HK2";
+  if (term === 3) return "HK3";
+  return `HK${term}`;
+};
 
 export default function RegistrationPeriodsPage() {
   const [periods, setPeriods] = useState<RegistrationPeriodResponse[]>([]);
@@ -27,19 +42,22 @@ export default function RegistrationPeriodsPage() {
   const { showToast } = useToast();
 
   const [form, setForm] = useState({
-    term: 1,
+    semesterCode: "",
     name: "",
     startDate: "",
     endDate: "",
     status: "DRAFT",
     minGPA: 0,
+    maxStudentsPerTopic: 3,
+    maxTopicPerLecturer: 5,
+    maxStudentPerGroup: 3,
   });
 
   const load = () => {
     setLoading(true);
     api.get("/registration-periods")
       .then((res) => setPeriods(res.data || []))
-      .catch(() => showToast("error", "Không thể tải dữ liệu"))
+      .catch(() => showToast("error", "Không thể tải danh sách đợt đăng ký"))
       .finally(() => setLoading(false));
   };
 
@@ -48,25 +66,38 @@ export default function RegistrationPeriodsPage() {
   const openCreate = () => {
     setEditing(null);
     setForm({
-      term: 1,
+      semesterCode: "1A",
       name: "",
       startDate: "",
       endDate: "",
       status: "DRAFT",
       minGPA: 0,
+      maxStudentsPerTopic: 3,
+      maxTopicPerLecturer: 5,
+      maxStudentPerGroup: 3,
     });
     setShowModal(true);
   };
 
   const openEdit = (period: RegistrationPeriodResponse) => {
     setEditing(period);
+    const matchedCode =
+      SEMESTER_OPTIONS.find(
+        (s) =>
+          s.term === (period as unknown as { term?: number }).term &&
+          period.name.toUpperCase().includes(s.code)
+      )?.code || SEMESTER_OPTIONS.find((s) => s.term === (period as unknown as { term?: number }).term)?.code || "";
+
     setForm({
-      term: period.term,
+      semesterCode: matchedCode,
       name: period.name,
       startDate: period.startDate.split("T")[0],
       endDate: period.endDate.split("T")[0],
       status: period.status,
-      minGPA: period.minGPA,
+      minGPA: period.minGPA ?? 0,
+      maxStudentsPerTopic: 3,
+      maxTopicPerLecturer: 5,
+      maxStudentPerGroup: 3,
     });
     setShowModal(true);
   };
@@ -80,11 +111,17 @@ export default function RegistrationPeriodsPage() {
       showToast("error", "Ngày bắt đầu phải trước ngày kết thúc");
       return;
     }
+    const semester = SEMESTER_OPTIONS.find((s) => s.code === form.semesterCode);
+    if (!semester) {
+      showToast("error", "Vui lòng chọn học kỳ");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const payload = {
-        term: form.term,
-        name: form.name,
+        term: semester.term,
+        name: form.name.trim(),
         startDate: form.startDate,
         endDate: form.endDate,
         status: form.status,
@@ -100,10 +137,8 @@ export default function RegistrationPeriodsPage() {
       setShowModal(false);
       load();
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { message?: string }; status?: number }; message?: string };
-      const message = axiosErr?.response?.data?.message
-        || (axiosErr?.response?.status === 409 ? "Xung đột dữ liệu." : "Thao tác thất bại.")
-        || "Thao tác thất bại.";
+      const axiosErr = err as { response?: { data?: { message?: string }; status?: number } };
+      const message = axiosErr?.response?.data?.message || "Thao tác thất bại.";
       showToast("error", message);
     } finally {
       setSubmitting(false);
@@ -134,9 +169,13 @@ export default function RegistrationPeriodsPage() {
       return;
     }
 
+    const semester = SEMESTER_OPTIONS.find((s) =>
+      period.name.toUpperCase().includes(s.code)
+    ) || SEMESTER_OPTIONS.find((s) => s.term === (period as unknown as { term?: number }).term);
+    const newStatus = "OPEN";
     try {
       await api.put(`/registration-periods/${id}`, {
-        term: period.term,
+        term: semester?.term ?? (period as unknown as { term?: number }).term ?? 1,
         name: period.name,
         startDate: period.startDate.split("T")[0],
         endDate: period.endDate.split("T")[0],
@@ -146,7 +185,7 @@ export default function RegistrationPeriodsPage() {
       showToast("success", "Đợt đăng ký đã mở!");
       load();
     } catch (err: unknown) {
-      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Thao tác thất bại.";
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Mở đợt thất bại.";
       showToast("error", message);
     }
   };
@@ -156,15 +195,19 @@ export default function RegistrationPeriodsPage() {
   };
 
   const columns = [
-    {
-      key: "name",
-      header: "Tên đợt",
-      render: (r: RegistrationPeriodResponse) => <span className="font-medium">{r.name}</span>,
-    },
+    { key: "name", header: "Tên đợt", render: (r: RegistrationPeriodResponse) => <span className="font-medium">{r.name}</span> },
     {
       key: "term",
       header: "Học kỳ",
-      render: (r: RegistrationPeriodResponse) => getTermLabel(r.term),
+      render: (r: RegistrationPeriodResponse) => {
+        const matched = SEMESTER_OPTIONS.find((s) => r.name.toUpperCase().includes(s.code));
+        const term = (r as unknown as { term?: number }).term;
+        return (
+          <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+            {matched ? matched.label : term ? termLabel(term) : "—"}
+          </span>
+        );
+      },
     },
     {
       key: "startDate",
@@ -213,7 +256,9 @@ export default function RegistrationPeriodsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Đợt đăng ký</h1>
-          <p className="text-sm text-gray-500">Quản lý các đợt đăng ký đề tài</p>
+          <p className="text-sm text-gray-500">
+            Quản lý các đợt đăng ký đề tài. Học kỳ được cố định: 1A, 1B, 2A, 2B, 3.
+          </p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="h-4 w-4" />
@@ -242,13 +287,13 @@ export default function RegistrationPeriodsPage() {
             label="Tên đợt *"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="VD: Đợt đăng ký HK2 2025-2026"
+            placeholder="VD: Đợt đăng ký đồ án HK1A 2025-2026"
           />
           <Select
             label="Học kỳ *"
-            value={String(form.term)}
-            onChange={(e) => setForm({ ...form, term: Number(e.target.value) })}
-            options={TERM_OPTIONS}
+            value={form.semesterCode}
+            onChange={(e) => setForm({ ...form, semesterCode: e.target.value })}
+            options={SEMESTER_OPTIONS.map((s) => ({ value: s.code, label: s.label }))}
           />
           <div className="grid grid-cols-2 gap-4">
             <Input
@@ -283,6 +328,10 @@ export default function RegistrationPeriodsPage() {
             value={form.minGPA}
             onChange={(e) => setForm({ ...form, minGPA: Number(e.target.value) })}
           />
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-700">
+            Lưu ý: cấu hình SV/đề tài/nhóm tối đa đang được quản lý theo Khoa/Chuyên ngành,
+            không thuộc đợt đăng ký.
+          </p>
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowModal(false)}>Hủy</Button>
             <Button isLoading={submitting} onClick={handleSubmit}>
