@@ -13,7 +13,7 @@ import { PeriodicReportResponse, ReportType } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
-import { Plus, FileBarChart, Upload, AlertCircle, BookOpen, CheckCircle, Clock, MessageSquare, Target } from "lucide-react";
+import { Plus, FileBarChart, Upload, AlertCircle, BookOpen, CheckCircle, Clock, MessageSquare, Target, RefreshCw, Megaphone } from "lucide-react";
 
 const reportTypeLabels: Record<ReportType, string> = {
   Weekly: "Báo cáo 5 phút",
@@ -140,6 +140,18 @@ function PeriodicReportsContent() {
     }
     loadMilestones();
   }, [topicId, loadReports, loadMilestones]);
+
+  // Auto-refresh milestones when user returns to the tab so feedback from
+  // lecturer appears without manual reload
+  useEffect(() => {
+    const onFocus = () => loadMilestones();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [loadMilestones]);
 
   const handleSubmit = async () => {
     if (!form.topicId) {
@@ -334,11 +346,19 @@ function PeriodicReportsContent() {
 
       {/* Nhiệm vụ từ giáo viên */}
       <div className="rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
+        <div className="border-b border-gray-200 bg-gray-50 px-4 py-3 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 flex items-center gap-2">
             <Target className="h-5 w-5 text-teal-600" />
             Nhiệm vụ từ giáo viên
           </h2>
+          <button
+            onClick={() => loadMilestones()}
+            className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            title="Tải lại danh sách"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Làm mới
+          </button>
         </div>
 
         {milestones.length === 0 ? (
@@ -366,17 +386,33 @@ function PeriodicReportsContent() {
                       </span>
                     </p>
 
-                    {milestone.feedback && (
-                      <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 p-3">
-                        <p className="text-xs font-medium text-amber-700 flex items-center gap-1 mb-1">
-                          <MessageSquare className="h-3 w-3" /> Phản hồi từ giáo viên:
-                        </p>
-                        <p className="text-sm text-amber-800">{milestone.feedback}</p>
-                        {milestone.revisionDeadline && (
-                          <p className="mt-1 text-xs text-amber-600">
-                            Hạn sửa: {format(new Date(milestone.revisionDeadline), "dd/MM/yyyy", { locale: vi })}
-                          </p>
-                        )}
+                    {(milestone.feedback || milestone.submissionStatus?.toUpperCase() === "NEEDSREVISION") && (
+                      <div className="mt-3 rounded-lg border-2 border-amber-300 bg-amber-50 p-3 shadow-sm">
+                        <div className="flex items-start gap-2">
+                          <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-amber-200">
+                            <MessageSquare className="h-4 w-4 text-amber-700" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-xs font-bold uppercase tracking-wide text-amber-800">
+                              Phản hồi từ giáo viên
+                            </p>
+                            {milestone.feedback ? (
+                              <p className="mt-1 text-sm font-medium text-amber-900 whitespace-pre-wrap">
+                                {milestone.feedback}
+                              </p>
+                            ) : (
+                              <p className="mt-1 text-sm italic text-amber-700">
+                                Giáo viên yêu cầu bạn chỉnh sửa lại bài nộp.
+                              </p>
+                            )}
+                            {milestone.revisionDeadline && (
+                              <p className="mt-2 inline-flex items-center gap-1 rounded-md bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                                <Clock className="h-3 w-3" />
+                                Hạn sửa: {format(new Date(milestone.revisionDeadline), "dd/MM/yyyy", { locale: vi })}
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
 
@@ -510,7 +546,7 @@ function PeriodicReportsContent() {
         </div>
       </Modal>
 
-      {/* Modal Nộp bài milestone */}
+      {/* Modal Nộp bài nhiệm vụ */}
       <Modal
         isOpen={showModal && !!selectedMilestone}
         onClose={() => { setShowModal(false); setSelectedMilestone(null); }}

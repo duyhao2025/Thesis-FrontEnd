@@ -13,6 +13,8 @@ import { vi } from "date-fns/locale";
 import { ArrowLeft, FileText, Upload, Clock, CheckCircle2, AlertCircle, History } from "lucide-react";
 import clsx from "clsx";
 import { StudentMilestoneSubmissionResponse, SubmissionVersionResponse } from "@/types/entities";
+import FileActionButton from "@/components/ui/FileActionButton";
+import FileIcon from "@/components/ui/FileIcon";
 
 export default function SubmissionDetailPage() {
   const params = useParams();
@@ -117,17 +119,7 @@ export default function SubmissionDetailPage() {
       <Card>
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
-            <div className={clsx(
-              "rounded-lg p-3",
-              submission.status.toUpperCase() === "COMPLETED" ? "bg-green-50" :
-              submission.status.toUpperCase() === "NEEDSREVISION" ? "bg-red-50" : "bg-blue-50"
-            )}>
-              <FileText className={clsx(
-                "h-6 w-6",
-                submission.status.toUpperCase() === "COMPLETED" ? "text-green-600" :
-                submission.status.toUpperCase() === "NEEDSREVISION" ? "text-red-600" : "text-blue-600"
-              )} />
-            </div>
+            <FileIcon url={submission.fileUrl} size="lg" showLabel />
             <div>
               <div className="flex items-center gap-3">
                 <h2 className="text-lg font-bold text-gray-900">{submission.title}</h2>
@@ -152,11 +144,15 @@ export default function SubmissionDetailPage() {
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <div>
-            <label className="text-sm font-medium text-gray-500">File</label>
-            <a href={submission.fileUrl} target="_blank" rel="noopener noreferrer"
-               className="mt-1 block rounded-lg border border-gray-200 p-3 text-sm text-blue-600 hover:bg-gray-50">
-              {submission.fileUrl}
-            </a>
+            <label className="text-sm font-medium text-gray-500">File bài nộp</label>
+            <div className="mt-1 rounded-lg border border-gray-200 bg-white p-3">
+              <FileActionButton
+                url={submission.fileUrl}
+                title={submission.title}
+                variant="button"
+              />
+              <p className="mt-2 truncate text-xs text-gray-400">{submission.fileUrl}</p>
+            </div>
           </div>
           <div>
             <label className="text-sm font-medium text-gray-500">Hạn chót sửa lại</label>
@@ -216,6 +212,7 @@ export default function SubmissionDetailPage() {
                     )}>
                       v{version.version}
                     </div>
+                    {version.fileUrl && <FileIcon url={version.fileUrl} size="sm" />}
                     <div>
                       <p className="font-medium text-gray-900">{version.title}</p>
                       <p className="text-xs text-gray-500">
@@ -223,7 +220,15 @@ export default function SubmissionDetailPage() {
                       </p>
                     </div>
                   </div>
-                  {getStatusBadge(version.status)}
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(version.status)}
+                    {version.fileUrl && (
+                      <FileActionButton
+                        url={version.fileUrl}
+                        title={`${version.title} (v${version.version})`}
+                      />
+                    )}
+                  </div>
                 </div>
 
                 {version.feedback && version.id !== submission.id && (

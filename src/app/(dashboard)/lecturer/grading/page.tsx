@@ -97,6 +97,8 @@ export default function GradingPage() {
     }));
   };
 
+  // TotalScore is on a 0–10 scale. Weight is stored as a 0–1 fraction of
+  // the rubric, so we multiply by 10 to scale the weighted sum to 0–10.
   const calculateTotalScore = () => {
     if (!rubricData?.rubric?.criteria) return 0;
 
@@ -108,7 +110,7 @@ export default function GradingPage() {
         total += normalizedScore * c.weight;
       }
     });
-    return Math.round(total * 100) / 100;
+    return Math.round(total * 10 * 100) / 100;
   };
 
   const handleSaveGrades = async () => {
@@ -440,7 +442,10 @@ export default function GradingPage() {
                     />
                   </div>
 
-                  {/* Actions */}
+                  {/* Actions — Phase 1: hide the in-page "Nộp điểm" button.
+                      Submitting is now done from lecturer/grade-management
+                      (built in Phase 3) where lecturers batch-send completed
+                      evaluations to the faculty staff. */}
                   <div className="mt-6 flex gap-3">
                     <button
                       onClick={handleSaveGrades}
@@ -450,7 +455,8 @@ export default function GradingPage() {
                       <Edit className="h-4 w-4" />
                       {saving ? "Đang lưu..." : existingEvaluation ? "Cập nhật" : "Lưu nháp"}
                     </button>
-                    {existingEvaluation && (
+                    {/* Submit button intentionally hidden — see comment above. */}
+                    {false && existingEvaluation && (
                       <button
                         onClick={handleSubmitEvaluation}
                         disabled={saving}

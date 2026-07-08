@@ -10,6 +10,7 @@ import Modal from "@/components/ui/Modal";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import Textarea from "@/components/ui/Textarea";
+import FileActionButton from "@/components/ui/FileActionButton";
 import { TopicResponse } from "@/types/entities";
 import { useToast } from "@/components/ui/Toast";
 import { Plus, Pencil, Trash2, Calendar, CheckCircle2, FileText, MessageSquare, ThumbsUp, Clock, Send, Users } from "lucide-react";
@@ -96,6 +97,15 @@ function ProgressPlansContent() {
     endDate: "",
     milestones: [{ title: "", deadline: "", requiredSubmission: false }],
   });
+
+  // Add-milestone modal state
+  const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
+  const [addMilestoneForm, setAddMilestoneForm] = useState({
+    title: "",
+    deadline: "",
+    requiredSubmission: true,
+  });
+  const [addingMilestone, setAddingMilestone] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -213,6 +223,68 @@ function ProgressPlansContent() {
     }
   };
 
+  const openAddMilestoneModal = () => {
+    if (!selectedPlan) return;
+    setAddMilestoneForm({
+      title: "",
+      deadline: format(new Date(selectedPlan.endDate), "yyyy-MM-dd"),
+      requiredSubmission: true,
+    });
+    setShowAddMilestoneModal(true);
+  };
+
+  const handleAddMilestone = async () => {
+    if (!selectedPlan) return;
+    if (!addMilestoneForm.title.trim()) {
+      showToast("error", "Vui lòng nhập tên nhiệm vụ");
+      return;
+    }
+    if (!addMilestoneForm.deadline) {
+      showToast("error", "Vui lòng chọn hạn nộp");
+      return;
+    }
+    setAddingMilestone(true);
+    try {
+      await api.post(`/progress-plans/${selectedPlan.id}/milestones`, {
+        title: addMilestoneForm.title.trim(),
+        deadline: new Date(addMilestoneForm.deadline).toISOString(),
+        requiredSubmission: addMilestoneForm.requiredSubmission,
+      });
+      showToast("success", "Đã thêm nhiệm vụ!");
+      setShowAddMilestoneModal(false);
+      setAddMilestoneForm({ title: "", deadline: "", requiredSubmission: true });
+
+      // Reload plan to pick up the new milestone + re-render modal
+      const planRes = await api.get(`/progress-plans/${selectedPlan.id}`);
+      setSelectedPlan(planRes.data);
+      load();
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Thêm nhiệm vụ thất bại.";
+      showToast("error", message);
+    } finally {
+      setAddingMilestone(false);
+    }
+  };
+
+  const handleDeleteMilestone = async (milestone: MilestoneDetail) => {
+    if (!selectedPlan) return;
+    if (milestone.submissionId || milestone.isCompleted) {
+      showToast("warning", "Không thể xóa nhiệm vụ đã có bài nộp hoặc đã hoàn thành.");
+      return;
+    }
+    if (!confirm(`Xóa nhiệm vụ "${milestone.title}"?`)) return;
+    try {
+      await api.delete(`/progress-plans/${selectedPlan.id}/milestones/${milestone.id}`);
+      showToast("success", "Đã xóa nhiệm vụ!");
+      const planRes = await api.get(`/progress-plans/${selectedPlan.id}`);
+      setSelectedPlan(planRes.data);
+      load();
+    } catch (err: unknown) {
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Xóa nhiệm vụ thất bại.";
+      showToast("error", message);
+    }
+  };
+
   // Load submissions for a milestone
   const loadSubmissions = async (milestoneId: string) => {
     setSelectedMilestoneId(milestoneId);
@@ -280,8 +352,8 @@ function ProgressPlansContent() {
       render: (r: ProgressPlanResponse) => format(new Date(r.endDate), "dd/MM/yyyy", { locale: vi }),
     },
     {
-      key: "milestones",
-      header: "Milestone",
+      key: "nhiemvus",
+      header: "Nhiệm vụ",
       render: (r: ProgressPlanResponse) => {
         const required = r.milestones?.filter((m: MilestoneDetail) => m.requiredSubmission).length || 0;
         const completed = r.milestones?.filter((m: MilestoneDetail) => m.isCompleted).length || 0;
@@ -366,9 +438,9 @@ function ProgressPlansContent() {
 
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-medium text-gray-700">Milestones</label>
+              <label className="text-sm font-medium text-gray-700">Nhiệm vụ</label>
               <Button size="sm" variant="outline" onClick={addMilestone}>
-                <Plus className="h-4 w-4" /> Thêm milestone
+                <Plus className="h-4 w-4" /> Thêm nhiệm vụ
               </Button>
             </div>
             <div className="space-y-3">
@@ -379,7 +451,7 @@ function ProgressPlansContent() {
                   </div>
                   <div className="flex-1 space-y-2">
                     <Input
-                      placeholder="Tên milestone"
+                      placeholder="Tên nhiệm vụ"
                       value={ms.title}
                       onChange={(e) => updateMilestone(idx, "title", e.target.value)}
                     />
@@ -434,7 +506,7 @@ function ProgressPlansContent() {
             <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
               <h4 className="font-medium text-purple-800 mb-2 flex items-center gap-2">
                 <span className="h-5 w-5">👥</span>
-                Sinh viên đăng ký đề tài này (sẽ nhận thông báo milestone)
+                Sinh viên đăng ký đề tài này (sẽ nhận thông báo nhiệm vụ)
               </h4>
               {loadingStudents ? (
                 <div className="flex items-center justify-center py-3">
@@ -461,6 +533,14 @@ function ProgressPlansContent() {
               )}
             </div>
 
+            <div>
+              <div className="mb-2 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-700">Danh sách nhiệm vụ</h4>
+                <Button size="sm" variant="outline" onClick={openAddMilestoneModal}>
+                  <Plus className="h-4 w-4" /> Thêm nhiệm vụ
+                </Button>
+              </div>
+
             <div className="space-y-3">
               {(selectedPlan.milestones || []).map((ms: MilestoneDetail, idx: number) => {
                 const status = getMilestoneStatus(ms);
@@ -485,6 +565,15 @@ function ProgressPlansContent() {
                           Deadline: {format(new Date(ms.deadline), "dd/MM/yyyy", { locale: vi })}
                         </p>
                       </div>
+                      {!ms.isCompleted && !ms.submissionId && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteMilestone(ms); }}
+                          className="rounded p-1 text-red-500 hover:bg-red-50"
+                          title="Xóa nhiệm vụ"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                       {ms.requiredSubmission && (
                         <span className={clsx("inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium", status.class)}>
                           {status.icon}
@@ -518,14 +607,13 @@ function ProgressPlansContent() {
                                     Nộp lúc: {format(new Date(sub.submittedAt), "dd/MM/yyyy HH:mm", { locale: vi })}
                                   </p>
                                   {sub.fileUrl && (
-                                    <a
-                                      href={sub.fileUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-sm text-blue-600 hover:underline mt-1 inline-block"
-                                    >
-                                      Xem file bài nộp
-                                    </a>
+                                    <div className="mt-2">
+                                      <FileActionButton
+                                        url={sub.fileUrl}
+                                        title={sub.title}
+                                        variant="button"
+                                      />
+                                    </div>
                                   )}
                                   {sub.feedback && (
                                     <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 p-3">
@@ -579,6 +667,7 @@ function ProgressPlansContent() {
                 );
               })}
             </div>
+            </div>
 
             <div className="flex justify-end pt-3">
               <Button variant="outline" onClick={() => { setShowDetailModal(false); setSelectedMilestoneId(null); setSubmissions([]); }}>
@@ -612,6 +701,70 @@ function ProgressPlansContent() {
             <Button isLoading={submitting} onClick={() => handleReview("feedback")}>
               <Send className="h-4 w-4 mr-1" />
               Gửi phản hồi
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Milestone Modal (to an existing plan) */}
+      <Modal
+        isOpen={showAddMilestoneModal}
+        onClose={() => setShowAddMilestoneModal(false)}
+        title="Thêm nhiệm vụ mới"
+        size="md"
+      >
+        <div className="space-y-4">
+          {selectedPlan && (
+            <div className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-800">
+              <p className="font-medium">Đang thêm nhiệm vụ vào kế hoạch:</p>
+              <p className="mt-1">
+                <span className="font-medium">{selectedPlan.topicTitle}</span>
+                <span className="text-xs text-teal-600">
+                  {" "}({format(new Date(selectedPlan.startDate), "dd/MM/yyyy")} → {format(new Date(selectedPlan.endDate), "dd/MM/yyyy")})
+                </span>
+              </p>
+            </div>
+          )}
+
+          <Input
+            label="Tên nhiệm vụ *"
+            value={addMilestoneForm.title}
+            onChange={(e) => setAddMilestoneForm({ ...addMilestoneForm, title: e.target.value })}
+            placeholder="VD: Báo cáo tuần 5, Cập nhật tài liệu..."
+          />
+
+          <Input
+            label="Hạn nộp *"
+            type="date"
+            value={addMilestoneForm.deadline}
+            min={selectedPlan ? format(new Date(selectedPlan.startDate), "yyyy-MM-dd") : undefined}
+            max={selectedPlan ? format(new Date(selectedPlan.endDate), "yyyy-MM-dd") : undefined}
+            onChange={(e) => setAddMilestoneForm({ ...addMilestoneForm, deadline: e.target.value })}
+          />
+
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={addMilestoneForm.requiredSubmission}
+              onChange={(e) => setAddMilestoneForm({ ...addMilestoneForm, requiredSubmission: e.target.checked })}
+              className="rounded border-gray-300"
+            />
+            Bắt buộc sinh viên nộp bài
+          </label>
+
+          <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+            <p>
+              <strong>Lưu ý:</strong> Nhiệm vụ mới sẽ được gửi thông báo đến tất cả sinh viên đang đăng ký đề tài này (nếu bắt buộc nộp).
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2">
+            <Button variant="outline" onClick={() => setShowAddMilestoneModal(false)}>
+              Hủy
+            </Button>
+            <Button isLoading={addingMilestone} onClick={handleAddMilestone}>
+              <Plus className="h-4 w-4 mr-1" />
+              Thêm nhiệm vụ
             </Button>
           </div>
         </div>
