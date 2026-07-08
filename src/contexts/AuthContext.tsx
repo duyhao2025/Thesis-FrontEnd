@@ -16,6 +16,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function decodeJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(base64)
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join("")
+    );
+    return JSON.parse(json);
+  } catch {
+    return {};
+  }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -30,14 +45,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(storedToken);
         try {
           const parsed = JSON.parse(storedUser);
-          // Support both old nested format { user: {...} } and new flat format
           if (parsed.user) {
-            // Old format
             setUser(parsed.user);
           } else {
-            // Normalize FullName (PascalCase from BE) to fullName (camelCase in interface)
+            const payload = decodeJwtPayload(storedToken);
+            const userId = (payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] as string)
+              || (payload["sub"] as string)
+              || parsed.id
+              || "";
             setUser({
               ...parsed,
+              id: userId,
               fullName: parsed.fullName ?? parsed.FullName ?? parsed.name ?? "",
             } as User);
           }
@@ -52,9 +70,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (data: LoginRequest) => {
     const response = await api.post<LoginResponse>("/auth/login", data);
     const { accessToken, refreshToken, requirePasswordChange, role, email, fullName } = response.data;
+    const payload = decodeJwtPayload(accessToken);
+    const userId = (payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"] as string)
+      || (payload["sub"] as string)
+      || "";
 
     const userData = {
-      id: "",
+      id: userId,
       email,
       fullName: fullName ?? "",
       role: role as User["role"],

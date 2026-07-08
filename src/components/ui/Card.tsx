@@ -4,7 +4,7 @@ import clsx from "clsx";
 interface CardProps {
   children: React.ReactNode;
   className?: string;
-  title?: string;
+  title?: React.ReactNode;
   subtitle?: string;
   action?: React.ReactNode;
 }

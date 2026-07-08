@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
           Student: "/student/dashboard",
           Lecturer: "/lecturer/dashboard",
           FacultyStaff: "/faculty-staff/dashboard",
-          HeadOfDepartment: "/lecturer/dashboard",
+          HeadOfDepartment: "/head/dashboard",
           Admin: "/admin/dashboard",
         };
         router.push(roleRoutes[user.role] || "/login");
