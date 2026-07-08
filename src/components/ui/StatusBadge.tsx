@@ -32,7 +32,8 @@ type StatusType =
   | "PASSED"
   | "FAILED"
   | "FORMING"
-  | "DISSOLVED";
+  | "DISSOLVED"
+  | "LECTURER_APPROVED";
 
 interface StatusBadgeProps {
   status: string;
@@ -73,6 +74,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   FORMING: { label: "Đang hình thành", className: "bg-blue-100 text-blue-800" },
   DISSOLVED: { label: "Đã giải tán", className: "bg-gray-100 text-gray-700" },
   CANCELLED: { label: "Đã hủy", className: "bg-red-100 text-red-700" },
+  LECTURER_APPROVED: { label: "GV đã duyệt", className: "bg-cyan-100 text-cyan-800" },
 };
 
 export default function StatusBadge({ status, className }: StatusBadgeProps) {

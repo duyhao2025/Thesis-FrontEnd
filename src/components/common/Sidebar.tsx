@@ -77,7 +77,6 @@ const menuConfig: Record<string, MenuItem[]> = {
   Admin: [
     { id: "admin-dashboard", label: "Tổng quan", href: "/admin/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
     { id: "admin-users", label: "Quản lý người dùng", href: "/admin/users", icon: <Users className="h-5 w-5" /> },
-    { id: "admin-semesters", label: "Học kỳ", href: "/admin/semesters", icon: <BookMarked className="h-5 w-5" /> },
     { id: "admin-departments", label: "Khoa / Ngành", href: "/admin/departments", icon: <Building2 className="h-5 w-5" /> },
     { id: "admin-audit", label: "Nhật ký hệ thống", href: "/admin/audit-log", icon: <ClipboardCheck className="h-5 w-5" /> },
   ],

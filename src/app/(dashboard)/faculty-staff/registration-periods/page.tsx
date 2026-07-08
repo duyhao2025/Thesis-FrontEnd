@@ -156,10 +156,7 @@ export default function RegistrationPeriodsPage() {
     }
   };
 
-  const handleToggleStatus = async (id: string, currentStatus: string) => {
-    const period = periods.find((p) => p.id === id);
-    if (!period) return;
-
+  const handleToggleStatus = async (id: string, currentStatus: string, period: RegistrationPeriodResponse) => {
     if (currentStatus === "OPEN") {
       try {
         await api.post(`/registration-periods/${id}/close`);
@@ -182,7 +179,7 @@ export default function RegistrationPeriodsPage() {
         name: period.name,
         startDate: period.startDate.split("T")[0],
         endDate: period.endDate.split("T")[0],
-        status: newStatus,
+        status: "OPEN",
         minGPA: period.minGPA,
       });
       showToast("success", "Đợt đăng ký đã mở!");
@@ -191,6 +188,10 @@ export default function RegistrationPeriodsPage() {
       const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Mở đợt thất bại.";
       showToast("error", message);
     }
+  };
+
+  const getTermLabel = (term: number) => {
+    return `HK${term}`;
   };
 
   const columns = [
@@ -230,7 +231,7 @@ export default function RegistrationPeriodsPage() {
       render: (r: RegistrationPeriodResponse) => (
         <div className="flex items-center gap-1">
           <button
-            onClick={() => handleToggleStatus(r.id, r.status)}
+            onClick={() => handleToggleStatus(r.id, r.status, r)}
             className={`rounded p-1.5 text-xs font-medium ${
               r.status === "OPEN"
                 ? "text-red-600 hover:bg-red-50"
@@ -279,7 +280,7 @@ export default function RegistrationPeriodsPage() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         title={editing ? "Sửa đợt đăng ký" : "Tạo đợt đăng ký mới"}
-        size="lg"
+        size="md"
       >
         <div className="space-y-4">
           <Input

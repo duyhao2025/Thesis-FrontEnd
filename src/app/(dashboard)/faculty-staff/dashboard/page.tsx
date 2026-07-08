@@ -131,7 +131,7 @@ export default function FacultyStaffDashboard() {
                     {new Date(period.endDate).toLocaleDateString("vi-VN")}
                   </p>
                   <p className="mt-0.5 text-xs text-gray-400">
-                    {period.semesterName}
+                    HK{period.term}
                   </p>
                 </div>
                 <StatusBadge status={period.status} />
