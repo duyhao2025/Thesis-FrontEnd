@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import type { MyProfileResponse } from "@/types/api";
 import Card from "@/components/ui/Card";
 import { CardSkeleton } from "@/components/ui/Skeleton";
+import EmailVerificationCard from "@/components/common/EmailVerificationCard";
 
 interface RoleTheme {
   roleLabel: string;
@@ -141,6 +142,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<MyProfileResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [profileVersion, setProfileVersion] = useState(0);
 
   const [studentStats, setStudentStats] = useState<StudentStats | null>(null);
   const [lecturerStats, setLecturerStats] = useState<LecturerStats | null>(null);
@@ -166,7 +168,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profileVersion]);
 
   useEffect(() => {
     if (!role || loading) return;
@@ -486,6 +488,15 @@ export default function ProfilePage() {
           />
         </div>
       </Card>
+
+      {/* Personal email (Students only) */}
+      {role === "Student" && (
+        <EmailVerificationCard
+          personalEmail={profile.personalEmail}
+          isEmailVerified={profile.isEmailVerified}
+          onChange={() => setProfileVersion((v) => v + 1)}
+        />
+      )}
 
       {/* Quick actions */}
       <Card

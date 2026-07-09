@@ -9,10 +9,12 @@ import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import DataTable from "@/components/ui/DataTable";
 import { useToast } from "@/components/ui/Toast";
+import ReadOnlyBadge from "@/components/head/ReadOnlyBadge";
 import {
   CouncilItem,
   CouncilMemberItem,
   CouncilTopicItem,
+  HoDCouncilListItem,
   TopicResponse,
 } from "@/types/entities";
 import {
@@ -77,7 +79,7 @@ function splitDateTime(iso: string): { date: string; time: string } {
 
 export default function HeadCouncilsPage() {
   const { showToast } = useToast();
-  const [councils, setCouncils] = useState<CouncilItem[]>([]);
+  const [councils, setCouncils] = useState<HoDCouncilListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [detailCouncil, setDetailCouncil] = useState<CouncilItem | null>(null);
@@ -106,7 +108,7 @@ export default function HeadCouncilsPage() {
   const loadCouncils = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/councils");
+      const res = await api.get("/head/councils");
       setCouncils(res.data || []);
     } catch {
       showToast("error", "Không thể tải danh sách hội đồng.");
@@ -146,11 +148,11 @@ export default function HeadCouncilsPage() {
     }
   };
 
-  const openDetail = async (council: CouncilItem) => {
+  const openDetail = async (council: HoDCouncilListItem) => {
     try {
-      const res = await api.get(`/councils/${council.id}`);
+      const res = await api.get(`/head/councils/${council.id}`);
       setDetailCouncil(res.data);
-      const topicsRes = await api.get(`/councils/${council.id}/topics`);
+      const topicsRes = await api.get(`/head/councils/${council.id}/topics`);
       setCouncilTopics(topicsRes.data || []);
       setDetailTab("info");
     } catch {
@@ -210,14 +212,14 @@ export default function HeadCouncilsPage() {
     {
       key: "name",
       header: "Tên hội đồng",
-      render: (c: CouncilItem) => (
+      render: (c: HoDCouncilListItem) => (
         <span className="font-medium text-gray-900">{c.name}</span>
       ),
     },
     {
       key: "defenseDate",
       header: "Ngày báo cáo",
-      render: (c: CouncilItem) => (
+      render: (c: HoDCouncilListItem) => (
         <div className="text-sm">
           <div className="flex items-center gap-1 text-gray-900">
             <CalendarDays className="h-3.5 w-3.5 text-gray-400" />
@@ -233,7 +235,7 @@ export default function HeadCouncilsPage() {
     {
       key: "location",
       header: "Phòng",
-      render: (c: CouncilItem) => (
+      render: (c: HoDCouncilListItem) => (
         <div className="flex items-center gap-1 text-gray-700">
           <MapPin className="h-3.5 w-3.5 text-gray-400" />
           {c.location}
@@ -243,16 +245,16 @@ export default function HeadCouncilsPage() {
     {
       key: "members",
       header: "Thành viên",
-      render: (c: CouncilItem) => (
+      render: (c: HoDCouncilListItem) => (
         <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
-          {c.members.length}
+          {c.memberCount}
         </span>
       ),
     },
     {
       key: "status",
       header: "Trạng thái",
-      render: (c: CouncilItem) => (
+      render: (c: HoDCouncilListItem) => (
         <span
           className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             statusStyles[c.status] || "bg-gray-100 text-gray-700"
@@ -269,16 +271,13 @@ export default function HeadCouncilsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">
-            Hội đồng báo cáo
+            Quản lý hội đồng
           </h1>
           <p className="text-sm text-gray-500">
-            Quản lý các hội đồng chấm báo cáo đồ án
+            Theo dõi các hội đồng chấm báo cáo đồ án trong khoa
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
-          <Plus className="h-4 w-4" />
-          Tạo hội đồng
-        </Button>
+        <ReadOnlyBadge />
       </div>
 
       <Card>
@@ -288,7 +287,7 @@ export default function HeadCouncilsPage() {
           loading={loading}
           rowKey="id"
           onRowClick={openDetail}
-          emptyMessage="Chưa có hội đồng nào. Hãy tạo hội đồng đầu tiên."
+          emptyMessage="Chưa có hội đồng nào trong khoa."
         />
       </Card>
 
@@ -442,7 +441,7 @@ export default function HeadCouncilsPage() {
                 >
                   {tab === "info" && "Thông tin chung"}
                   {tab === "members" &&
-                    `Thành viên (${detailCouncil.members.length})`}
+                    `Thành viên (${detailCouncil.members?.length ?? 0})`}
                   {tab === "topics" && `Đề tài (${councilTopics.length})`}
                 </button>
               ))}
@@ -500,10 +499,6 @@ export default function HeadCouncilsPage() {
                       </span>
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={openEdit}>
-                    <Pencil className="h-3.5 w-3.5" />
-                    Sửa
-                  </Button>
                 </div>
               </div>
             )}
@@ -544,7 +539,7 @@ function CouncilMembersTab({
   onUpdate,
   showToast,
 }: {
-  council: CouncilItem;
+  council: CouncilItem & { members: CouncilMemberItem[] };
   onUpdate: () => Promise<void>;
   showToast: ReturnType<typeof useToast>["showToast"];
 }) {
@@ -627,32 +622,13 @@ function CouncilMembersTab({
         </div>
       ),
     },
-    {
-      key: "actions",
-      header: "",
-      render: (m: CouncilMemberItem) => (
-        <button
-          onClick={() => handleRemove(m.id)}
-          className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-          Xóa
-        </button>
-      ),
-    },
   ];
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={openAdd}>
-          <Plus className="h-3.5 w-3.5" />
-          Thêm thành viên
-        </Button>
-      </div>
       <DataTable
         columns={memberColumns}
-        data={council.members}
+        data={council.members ?? []}
         rowKey="id"
         emptyMessage="Chưa có thành viên nào."
       />
@@ -800,17 +776,46 @@ function CouncilTopicsTab({
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
-        <Button size="sm" onClick={openAdd}>
-          <Plus className="h-3.5 w-3.5" />
-          Phân công đề tài
-        </Button>
-      </div>
       <DataTable
-        columns={columns}
+        columns={[
+          {
+            key: "title",
+            header: "Tên đề tài",
+            render: (t: CouncilTopicItem) => (
+              <span className="font-medium text-gray-900">{t.topicTitle}</span>
+            ),
+          },
+          {
+            key: "group",
+            header: "Nhóm SV",
+            render: (t: CouncilTopicItem) => (
+              <span className="text-sm text-gray-700">{t.studentGroupName || "—"}</span>
+            ),
+          },
+          {
+            key: "status",
+            header: "Trạng thái",
+            render: (t: CouncilTopicItem) => (
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                {t.status || "—"}
+              </span>
+            ),
+          },
+          {
+            key: "assignedAt",
+            header: "Ngày gán",
+            render: (t: CouncilTopicItem) => (
+              <span className="text-xs text-gray-500">
+                {t.assignedAt
+                  ? format(new Date(t.assignedAt), "dd/MM/yyyy HH:mm", { locale: vi })
+                  : "—"}
+              </span>
+            ),
+          },
+        ]}
         data={topics}
         rowKey="assignmentId"
-        emptyMessage="Chưa có đề tài nào trong hội đồng."
+        emptyMessage="Chưa có đề tài nào được phân công."
       />
 
       <Modal

@@ -61,9 +61,12 @@ const menuConfig: Record<string, MenuItem[]> = {
     { id: "lecturer-notifications", label: "Thông báo", href: "/lecturer/notifications", icon: <Bell className="h-5 w-5" /> },
   ],
   HeadOfDepartment: [
-    { id: "hod-dashboard", label: "Tổng quan", href: "/head/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { id: "hod-councils", label: "Hội đồng báo cáo", href: "/head/councils", icon: <Users className="h-5 w-5" /> },
-    { id: "hod-rubrics", label: "Tiêu chí chấm", href: "/head/rubrics", icon: <BookMarked className="h-5 w-5" /> },
+    { id: "hod-overview",   label: "Tổng quan khoa",     href: "/head/overview",   icon: <LayoutDashboard className="h-5 w-5" /> },
+    { id: "hod-department", label: "Khoa & chuyên ngành", href: "/head/department", icon: <Building2 className="h-5 w-5" /> },
+    { id: "hod-members",    label: "Thành viên khoa",    href: "/head/members",    icon: <Users className="h-5 w-5" /> },
+    { id: "hod-councils",   label: "Quản lý hội đồng",  href: "/head/councils",   icon: <ClipboardList className="h-5 w-5" /> },
+    { id: "hod-rubrics",    label: "Quản lý tiêu chí",  href: "/head/rubrics",    icon: <BookMarked className="h-5 w-5" /> },
+    { id: "hod-topics",     label: "Đề tài trong khoa", href: "/head/topics",     icon: <FolderKanban className="h-5 w-5" /> },
   ],
   FacultyStaff: [
     { id: "faculty-dashboard", label: "Tổng quan", href: "/faculty-staff/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },

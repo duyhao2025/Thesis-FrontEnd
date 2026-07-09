@@ -51,6 +51,9 @@ export interface MyProfileResponse {
   isActive: boolean;
   createdAt: string;
   updatedAt?: string;
+  // Personal email channel (Students only)
+  personalEmail?: string;
+  isEmailVerified: boolean;
   departmentId?: string;
   departmentName?: string;
   departmentCode?: string;
@@ -58,6 +61,24 @@ export interface MyProfileResponse {
   majorName?: string;
   majorCode?: string;
   statusLabel: string;
+}
+
+// ============================================================
+// Personal email verification
+// ============================================================
+export interface SendVerificationRequest {
+  email: string;
+}
+
+export interface SendVerificationResponse {
+  message: string;
+  retryAfterSeconds: number;
+}
+
+export interface ConfirmVerificationResponse {
+  success: boolean;
+  message: string;
+  personalEmail?: string;
 }
 
 export interface ApiError {
