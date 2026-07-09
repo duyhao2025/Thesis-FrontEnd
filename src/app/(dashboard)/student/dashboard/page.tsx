@@ -3,8 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import api from "@/lib/api";
-import Card from "@/components/ui/Card";
+import Link from "next/link";
 import { CardSkeleton } from "@/components/ui/Skeleton";
+import HeroBanner from "@/components/common/HeroBanner";
+import StatCard from "@/components/common/StatCard";
+import SectionCard from "@/components/common/SectionCard";
+import QuickActions from "@/components/common/QuickActions";
+import Timeline from "@/components/common/Timeline";
+import { getRoleTheme } from "@/lib/roleTheme";
 import {
   BookOpen,
   FileText,
@@ -15,8 +21,10 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
+  PlusCircle,
+  Send,
+  LineChart,
 } from "lucide-react";
-import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import { vi } from "date-fns/locale";
 
@@ -28,6 +36,8 @@ interface DefenseInfo {
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const theme = getRoleTheme(user?.role);
+
   const [loading, setLoading] = useState(true);
   const [registrations, setRegistrations] = useState<
     { topicTitle: string; status: string; submittedAt: string }[]
@@ -64,47 +74,18 @@ export default function StudentDashboard() {
     (p) => p.status === "APPROVED" || p.status === "Approved"
   );
 
-  const cards = [
-    {
-      label: "Đề tài đã đăng ký",
-      value: registrations.length,
-      icon: <BookOpen className="h-6 w-6" />,
-      colorClass: "bg-emerald-50 text-emerald-600",
-      href: "/student/topic-registrations",
-    },
-    {
-      label: "Đề xuất chờ duyệt",
-      value: pendingProposals.length,
-      icon: <FileText className="h-6 w-6" />,
-      colorClass: "bg-amber-50 text-amber-600",
-      href: "/student/topic-proposals",
-    },
-    {
-      label: "Đề xuất đã duyệt",
-      value: approvedProposals.length,
-      icon: <ClipboardList className="h-6 w-6" />,
-      colorClass: "bg-green-50 text-green-600",
-      href: "/student/topic-proposals",
-    },
-    {
-      label: "Tiến độ học tập",
-      value: "—",
-      icon: <Calendar className="h-6 w-6" />,
-      colorClass: "bg-violet-50 text-violet-600",
-      href: "/student/my-topic",
-    },
-  ];
-
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Xin chào, {user?.fullName}
-        </h1>
+        <CardSkeleton />
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <CardSkeleton key={i} />
           ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <CardSkeleton />
+          <CardSkeleton />
         </div>
       </div>
     );
@@ -112,55 +93,100 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Xin chào, {user?.fullName}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Trang tổng quan sinh viên
-          </p>
-        </div>
-      </div>
+      <HeroBanner
+        fullName={user?.fullName || "Sinh viên"}
+        roleLabel={theme.roleLabel}
+        subtitle="Hành trình đồ án tốt nghiệp"
+        email={user?.email}
+        highlight={
+          approvedProposals.length > 0
+            ? "Có đề tài được duyệt"
+            : pendingProposals.length > 0
+              ? "Có đề xuất đang chờ"
+              : "Sẵn sàng đăng ký"
+        }
+        theme={theme}
+        actions={
+          <>
+            <Link
+              href="/student/topic-registrations"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white/95 px-3.5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-white"
+            >
+              <PlusCircle className="h-4 w-4" />
+              Đăng ký đề tài
+            </Link>
+            <Link
+              href="/student/topic-proposals"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/40 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+            >
+              <Send className="h-4 w-4" />
+              Đề xuất mới
+            </Link>
+          </>
+        }
+      />
 
-      {/* Stats grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((stat) => (
-          <Link key={stat.label} href={stat.href}>
-            <Card className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="flex items-center gap-4">
-                <div className={`rounded-xl p-3 ${stat.colorClass}`}>
-                  {stat.icon}
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  <p className="text-sm text-gray-500">{stat.label}</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-        ))}
+        <StatCard
+          label="Đề tài đã đăng ký"
+          value={registrations.length}
+          tone="emerald"
+          icon={<BookOpen className="h-5 w-5" />}
+          hint="Đề tài đang tham gia"
+          href="/student/topic-registrations"
+          sparkline="0,18 12,16 24,15 36,13 48,11 60,10 72,8 84,7 100,5"
+          sparklineColor="#059669"
+        />
+        <StatCard
+          label="Đề xuất chờ duyệt"
+          value={pendingProposals.length}
+          tone="amber"
+          icon={<FileText className="h-5 w-5" />}
+          hint="Đang chờ phản hồi"
+          href="/student/topic-proposals"
+          sparkline="0,20 12,18 24,15 36,12 48,10 60,9 72,7 84,6 100,4"
+          sparklineColor="#d97706"
+        />
+        <StatCard
+          label="Đề xuất đã duyệt"
+          value={approvedProposals.length}
+          tone="teal"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          hint="Sẵn sàng thực hiện"
+          href="/student/topic-proposals"
+          sparkline="0,22 12,20 24,18 36,16 48,14 60,12 72,10 84,8 100,6"
+          sparklineColor="#0d9488"
+        />
+        <StatCard
+          label="Tiến độ học tập"
+          value="—"
+          tone="violet"
+          icon={<LineChart className="h-5 w-5" />}
+          hint="Cập nhật nhật ký tiến độ"
+          href="/student/my-topic"
+          sparkline="0,20 12,18 24,16 36,14 48,12 60,10 72,8 84,6 100,5"
+          sparklineColor="#7c3aed"
+        />
       </div>
 
-      {/* Council info card */}
       {defense && (
-        <Card
+        <SectionCard
           title={
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-600" />
-              <span>Hội đồng báo cáo</span>
-            </div>
+            <span className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-emerald-600" />
+              Hội đồng báo cáo
+            </span>
           }
-          action={
-            <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+          actions={
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
               <CheckCircle2 className="h-3 w-3" />
               Đã xếp lịch
             </span>
           }
         >
           <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
-              <p className="text-xs font-medium uppercase text-blue-700">
+            <div className="rounded-lg border border-emerald-100 bg-emerald-50/50 p-3">
+              <p className="text-xs font-medium uppercase text-emerald-700">
                 Đề tài
               </p>
               <p className="mt-1 line-clamp-2 text-sm font-medium text-gray-900">
@@ -192,115 +218,105 @@ export default function StudentDashboard() {
               </p>
             </div>
           </div>
-        </Card>
+        </SectionCard>
       )}
 
-      {/* Recent activity */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <Card
+        <SectionCard
           title="Đăng ký gần đây"
-          action={
+          icon={<BookOpen className="h-4 w-4" />}
+          actions={
             <Link
               href="/student/topic-registrations"
-              className="flex items-center gap-1 text-sm text-emerald-600 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900"
             >
-              Xem tất cả <ArrowRight className="h-4 w-4" />
+              Xem tất cả <ArrowRight className="h-3 w-3" />
             </Link>
           }
         >
           {registrations.length === 0 ? (
-            <p className="text-sm text-gray-400">Chưa có đăng ký nào</p>
+            <p className="text-sm text-gray-500">Chưa có đăng ký nào.</p>
           ) : (
-            <div className="space-y-3">
-              {registrations
-                .slice(0, 3)
-                .map((reg, idx) => (
-                  <div
-                    key={`${reg.topicTitle}-${idx}`}
-                    className="flex items-center justify-between rounded-lg border border-gray-100 p-3"
-                  >
-                    <p className="truncate text-sm font-medium text-gray-800 max-w-[200px]">
-                      {reg.topicTitle}
-                    </p>
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
-                      {reg.status}
-                    </span>
-                  </div>
-                ))}
-            </div>
+            <Timeline
+              items={registrations.slice(0, 5).map((r, i) => ({
+                id: `${r.topicTitle}-${i}`,
+                title: r.topicTitle,
+                status: "active",
+                pill: r.status,
+                date: r.submittedAt
+                  ? new Date(r.submittedAt).toLocaleDateString("vi-VN")
+                  : "—",
+              }))}
+            />
           )}
-        </Card>
+        </SectionCard>
 
-        <Card
+        <SectionCard
           title="Đề xuất gần đây"
-          action={
+          icon={<FileText className="h-4 w-4" />}
+          actions={
             <Link
               href="/student/topic-proposals"
-              className="flex items-center gap-1 text-sm text-emerald-600 hover:underline"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-900"
             >
-              Xem tất cả <ArrowRight className="h-4 w-4" />
+              Xem tất cả <ArrowRight className="h-3 w-3" />
             </Link>
           }
         >
           {proposals.length === 0 ? (
-            <p className="text-sm text-gray-400">Chưa có đề xuất nào</p>
+            <p className="text-sm text-gray-500">Chưa có đề xuất nào.</p>
           ) : (
-            <div className="space-y-3">
-              {proposals.slice(0, 3).map((prop, idx) => (
-                <div
-                  key={`${prop.title}-${idx}`}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3"
-                >
-                  <p className="truncate text-sm font-medium text-gray-800 max-w-[200px]">
-                    {prop.title}
-                  </p>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                      prop.status === "PENDING" || prop.status === "Pending"
-                        ? "bg-amber-100 text-amber-700"
-                        : prop.status === "APPROVED" || prop.status === "Approved"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {prop.status}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <Timeline
+              items={proposals.slice(0, 5).map((p, i) => {
+                const isPending =
+                  p.status === "PENDING" || p.status === "Pending";
+                const isApproved =
+                  p.status === "APPROVED" || p.status === "Approved";
+                return {
+                  id: `${p.title}-${i}`,
+                  title: p.title,
+                  status: isPending ? "active" : isApproved ? "done" : "todo",
+                  pill: p.status,
+                  date: p.createdAt
+                    ? new Date(p.createdAt).toLocaleDateString("vi-VN")
+                    : "—",
+                };
+              })}
+            />
           )}
-        </Card>
+        </SectionCard>
       </div>
 
-      {/* Quick actions */}
-      <Card title="Hành động nhanh">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Link href="/student/topic-registrations">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-emerald-200 hover:bg-emerald-50">
-              <BookOpen className="mx-auto mb-2 h-6 w-6 text-emerald-600" />
-              <p className="text-sm font-medium text-gray-700">Đăng ký đề tài</p>
-            </div>
-          </Link>
-          <Link href="/student/topic-proposals">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-amber-200 hover:bg-amber-50">
-              <FileText className="mx-auto mb-2 h-6 w-6 text-amber-600" />
-              <p className="text-sm font-medium text-gray-700">Đề xuất mới</p>
-            </div>
-          </Link>
-          <Link href="/student/progress-logs">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-green-200 hover:bg-green-50">
-              <ClipboardList className="mx-auto mb-2 h-6 w-6 text-green-600" />
-              <p className="text-sm font-medium text-gray-700">Nhật ký tiến độ</p>
-            </div>
-          </Link>
-          <Link href="/student/my-topic">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-violet-200 hover:bg-violet-50">
-              <Calendar className="mx-auto mb-2 h-6 w-6 text-violet-600" />
-              <p className="text-sm font-medium text-gray-700">Đề tài của tôi</p>
-            </div>
-          </Link>
-        </div>
-      </Card>
+      <QuickActions
+        title="Hành động nhanh"
+        subtitle="Truy cập nhanh các chức năng sinh viên"
+        actions={[
+          {
+            href: "/student/topic-registrations",
+            label: "Đăng ký đề tài",
+            icon: <BookOpen />,
+            className: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100",
+          },
+          {
+            href: "/student/topic-proposals",
+            label: "Đề xuất mới",
+            icon: <FileText />,
+            className: "bg-amber-50 text-amber-600 hover:bg-amber-100",
+          },
+          {
+            href: "/student/progress-logs",
+            label: "Nhật ký tiến độ",
+            icon: <ClipboardList />,
+            className: "bg-teal-50 text-teal-600 hover:bg-teal-100",
+          },
+          {
+            href: "/student/my-topic",
+            label: "Đề tài của tôi",
+            icon: <Calendar />,
+            className: "bg-violet-50 text-violet-600 hover:bg-violet-100",
+          },
+        ]}
+      />
     </div>
   );
 }

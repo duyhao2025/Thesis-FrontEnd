@@ -50,6 +50,7 @@ const menuConfig: Record<string, MenuItem[]> = {
   ],
   Lecturer: [
     { id: "lecturer-dashboard", label: "Tổng quan", href: "/lecturer/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { id: "lecturer-councils", label: "Hội đồng của tôi", href: "/lecturer/councils", icon: <Users className="h-5 w-5" /> },
     { id: "lecturer-topics", label: "Quản lý đề tài", href: "/lecturer/topics", icon: <BookOpen className="h-5 w-5" /> },
     { id: "lecturer-registrations", label: "Duyệt đăng ký", href: "/lecturer/topic-registrations", icon: <ClipboardCheck className="h-5 w-5" /> },
     { id: "lecturer-proposals", label: "Duyệt đề xuất", href: "/lecturer/topic-proposals", icon: <CheckCircle className="h-5 w-5" /> },

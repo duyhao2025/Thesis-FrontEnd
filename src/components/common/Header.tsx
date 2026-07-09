@@ -1,8 +1,9 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { LogOut, User, ChevronDown } from "lucide-react";
+import { LogOut, ChevronDown, KeyRound, UserCircle2 } from "lucide-react";
 import { Menu, Transition } from "@headlessui/react";
 import clsx from "clsx";
 
@@ -80,6 +81,34 @@ export default function Header() {
                 <p className="text-xs text-gray-500">{user?.email}</p>
               </div>
               <div className="p-1">
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/profile"
+                      className={clsx(
+                        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm",
+                        active ? "bg-gray-100 text-gray-900" : "text-gray-700"
+                      )}
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      Hồ sơ cá nhân
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      href="/change-password"
+                      className={clsx(
+                        "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm",
+                        active ? "bg-gray-100 text-gray-900" : "text-gray-700"
+                      )}
+                    >
+                      <KeyRound className="h-4 w-4" />
+                      Đổi mật khẩu
+                    </Link>
+                  )}
+                </Menu.Item>
                 <Menu.Item>
                   {({ active }) => (
                     <button

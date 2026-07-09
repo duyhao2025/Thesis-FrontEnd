@@ -355,6 +355,13 @@ export interface CouncilItem {
   id: string;
   name: string;
   defenseDate: string;
+  /**
+   * Optional end of the council session. After this time, the council is
+   * auto-closed (status = Closed) and its members are freed up to be
+   * invited to other councils. Staff can also override this when confirming
+   * closure via POST /api/councils/{id}/confirm-closure.
+   */
+  endTime?: string | null;
   location: string;
   status: string;
   createdAt: string;

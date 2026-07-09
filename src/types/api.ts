@@ -39,6 +39,27 @@ export interface RefreshTokenResponse {
   expiresIn: number;
 }
 
+// ============================================================
+// My Profile — user self-service
+// ============================================================
+export interface MyProfileResponse {
+  userId: string;
+  fullName: string;
+  email: string;
+  userCode?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  departmentId?: string;
+  departmentName?: string;
+  departmentCode?: string;
+  majorId?: string;
+  majorName?: string;
+  majorCode?: string;
+  statusLabel: string;
+}
+
 export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;

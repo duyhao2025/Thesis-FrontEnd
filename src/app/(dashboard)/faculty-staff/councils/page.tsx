@@ -19,7 +19,6 @@ import {
 import {
   Plus,
   Pencil,
-  Users,
   CalendarDays,
   MapPin,
   Trash2,
@@ -30,6 +29,7 @@ import {
   PenLine,
   ClipboardSignature,
   ListChecks,
+  RotateCcw,
   RefreshCw,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -81,6 +81,8 @@ const statusLabels: Record<string, string> = {
   Draft: "Nháp",
   Scheduled: "Đã lên lịch",
   InProgress: "Đang diễn ra",
+  PendingClosure: "Chờ xác nhận đóng",
+  Closed: "Đã đóng",
   Completed: "Hoàn thành",
   Cancelled: "Đã hủy",
 };
@@ -89,9 +91,13 @@ const statusStyles: Record<string, string> = {
   Draft: "bg-gray-100 text-gray-700",
   Scheduled: "bg-blue-100 text-blue-700",
   InProgress: "bg-amber-100 text-amber-700",
+  PendingClosure: "bg-orange-100 text-orange-700",
+  Closed: "bg-slate-200 text-slate-700",
   Completed: "bg-green-100 text-green-700",
   Cancelled: "bg-red-100 text-red-700",
 };
+
+const closableStatuses = new Set(["Draft", "Scheduled", "InProgress", "PendingClosure"]);
 
 const roleVietnameseLabels: Record<CouncilRoleKey, string> = {
   Chairman: "Chủ tịch",
@@ -134,12 +140,16 @@ export default function StaffCouncilsPage() {
     name: "",
     date: "",
     time: "",
+    endDate: "",
+    endTime: "",
     location: "",
   });
   const [editForm, setEditForm] = useState({
     name: "",
     date: "",
     time: "",
+    endDate: "",
+    endTime: "",
     location: "",
     status: "Draft",
   });
@@ -170,11 +180,15 @@ export default function StaffCouncilsPage() {
       await api.post("/councils", {
         name: createForm.name,
         defenseDate: combineDateAndTime(createForm.date, createForm.time),
+        endTime:
+          createForm.endDate && createForm.endTime
+            ? combineDateAndTime(createForm.endDate, createForm.endTime)
+            : null,
         location: createForm.location,
       });
       showToast("success", "Tạo hội đồng thành công!");
       setShowCreateModal(false);
-      setCreateForm({ name: "", date: "", time: "", location: "" });
+      setCreateForm({ name: "", date: "", time: "", endDate: "", endTime: "", location: "" });
       loadCouncils();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -205,10 +219,15 @@ export default function StaffCouncilsPage() {
   const openEdit = () => {
     if (!detailCouncil) return;
     const { date, time } = splitDateTime(detailCouncil.defenseDate);
+    const end = detailCouncil.endTime
+      ? splitDateTime(detailCouncil.endTime)
+      : { date: "", time: "" };
     setEditForm({
       name: detailCouncil.name,
       date,
       time,
+      endDate: end.date,
+      endTime: end.time,
       location: detailCouncil.location,
       status: detailCouncil.status,
     });
@@ -226,6 +245,10 @@ export default function StaffCouncilsPage() {
       await api.put(`/councils/${detailCouncil.id}`, {
         name: editForm.name,
         defenseDate: combineDateAndTime(editForm.date, editForm.time),
+        endTime:
+          editForm.endDate && editForm.endTime
+            ? combineDateAndTime(editForm.endDate, editForm.endTime)
+            : null,
         location: editForm.location,
         status: editForm.status,
       });
@@ -239,6 +262,42 @@ export default function StaffCouncilsPage() {
       showToast("error", e.response?.data?.message || "Cập nhật thất bại.");
     } finally {
       setEditing(false);
+    }
+  };
+
+  const handleConfirmClosure = async () => {
+    if (!detailCouncil) return;
+    const endTime = window.prompt(
+      "Nhập thời gian kết thúc hội đồng (định dạng YYYY-MM-DDTHH:mm:ssZ). Bỏ trống để giữ nguyên EndTime hiện tại.",
+      detailCouncil.endTime ?? new Date().toISOString()
+    );
+    // If user clicked Cancel, prompt returns null.
+    if (endTime === null) return;
+    try {
+      const body = endTime ? { endTime } : {};
+      const res = await api.post(`/councils/${detailCouncil.id}/confirm-closure`, body);
+      showToast("success", "Hội đồng đã được đóng. Các vai trò đã được giải phóng.");
+      setDetailCouncil(res.data);
+      loadCouncils();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      showToast("error", e.response?.data?.message || "Xác nhận đóng thất bại.");
+    }
+  };
+
+  const handleReopenCouncil = async () => {
+    if (!detailCouncil) return;
+    if (!window.confirm(
+      `Mở lại hội đồng "${detailCouncil.name}"? Trạng thái sẽ chuyển về Bản nháp và bạn có thể tiếp tục chỉnh sửa thành viên, phân công đề tài, v.v.`
+    )) return;
+    try {
+      const res = await api.post(`/councils/${detailCouncil.id}/reopen`);
+      showToast("success", "Hội đồng đã được mở lại (chuyển về Bản nháp).");
+      setDetailCouncil(res.data);
+      loadCouncils();
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      showToast("error", e.response?.data?.message || "Mở lại hội đồng thất bại.");
     }
   };
 
@@ -356,6 +415,21 @@ export default function StaffCouncilsPage() {
               onChange={(e) => setCreateForm({ ...createForm, time: e.target.value })}
             />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              type="date"
+              label="Ngày kết thúc (tùy chọn)"
+              value={createForm.endDate}
+              onChange={(e) => setCreateForm({ ...createForm, endDate: e.target.value })}
+            />
+            <Input
+              type="time"
+              label="Giờ kết thúc"
+              value={createForm.endTime}
+              onChange={(e) => setCreateForm({ ...createForm, endTime: e.target.value })}
+              disabled={!createForm.endDate}
+            />
+          </div>
           <Input
             label="Phòng báo cáo"
             value={createForm.location}
@@ -363,7 +437,13 @@ export default function StaffCouncilsPage() {
             placeholder="VD: Phòng A.301"
           />
           <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-700">
-            Sau khi tạo, mở chi tiết hội đồng để chọn thành viên và phân công đề tài.
+            <p>Sau khi tạo, mở chi tiết hội đồng để chọn thành viên và phân công đề tài.</p>
+            <p className="mt-1 text-xs">
+              <strong>Mẹo:</strong> nếu nhập <em>Ngày kết thúc</em>, các thành viên hội đồng
+              (đặc biệt Chủ tịch & Thư ký) sẽ tự động được giải phóng sau thời điểm đó và có
+              thể tham gia hội đồng khác. Hệ thống cũng sẽ tự động đóng hội đồng khi quá thời
+              gian kết thúc.
+            </p>
           </div>
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowCreateModal(false)}>
@@ -403,6 +483,21 @@ export default function StaffCouncilsPage() {
               onChange={(e) => setEditForm({ ...editForm, time: e.target.value })}
             />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              type="date"
+              label="Ngày kết thúc (tùy chọn)"
+              value={editForm.endDate}
+              onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
+            />
+            <Input
+              type="time"
+              label="Giờ kết thúc"
+              value={editForm.endTime}
+              onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
+              disabled={!editForm.endDate}
+            />
+          </div>
           <Input
             label="Phòng báo cáo"
             value={editForm.location}
@@ -412,7 +507,9 @@ export default function StaffCouncilsPage() {
             label="Trạng thái"
             value={editForm.status}
             onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
-            options={Object.entries(statusLabels).map(([k, v]) => ({ value: k, label: v }))}
+            options={Object.entries(statusLabels)
+              .filter(([k]) => k !== "PendingClosure" && k !== "Closed")
+              .map(([k, v]) => ({ value: k, label: v }))}
           />
           <div className="flex justify-end gap-3">
             <Button variant="outline" onClick={() => setShowEditModal(false)}>
@@ -502,6 +599,75 @@ export default function StaffCouncilsPage() {
                     Sửa
                   </Button>
                 </div>
+
+                {/* End time + closure controls */}
+                {detailCouncil.endTime && (
+                  <div className="rounded-lg bg-gray-50 p-3">
+                    <p className="text-xs font-medium uppercase text-gray-500">Thời gian kết thúc</p>
+                    <p className="mt-1 flex items-center gap-1 font-semibold text-gray-900">
+                      <Clock className="h-4 w-4 text-gray-400" />
+                      {format(new Date(detailCouncil.endTime), "dd/MM/yyyy HH:mm", { locale: vi })}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Hệ thống sẽ tự động đóng hội đồng khi quá thời gian này.
+                    </p>
+                  </div>
+                )}
+
+                {closableStatuses.has(detailCouncil.status) && (
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-3">
+                    <p className="text-sm font-semibold text-orange-900">Đóng hội đồng</p>
+                    <p className="mt-1 text-xs text-orange-800">
+                      Khi hội đồng kết thúc, bấm <strong>Xác nhận đóng</strong> để giải phóng
+                      vai trò Chủ tịch/Thư ký và cho phép họ tham gia hội đồng khác.
+                    </p>
+                    <div className="mt-2 flex justify-end">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleConfirmClosure}
+                        className="border-orange-300 bg-white text-orange-700 hover:bg-orange-50"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Xác nhận đóng hội đồng
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {detailCouncil.status === "PendingClosure" && (
+                  <div className="rounded-lg border border-orange-300 bg-orange-50 p-3 text-xs text-orange-800">
+                    <p>
+                      <strong>Chủ tịch đã yêu cầu đóng hội đồng.</strong> Bạn có thể xác nhận
+                      bên dưới (kèm thời gian kết thúc) để giải phóng các vai trò.
+                    </p>
+                  </div>
+                )}
+
+                {detailCouncil.status === "Closed" && (
+                  <div className="rounded-lg border border-slate-300 bg-slate-50 p-3 text-xs text-slate-700">
+                    <div className="flex items-start justify-between gap-3">
+                      <p>
+                        <strong>Hội đồng đã được đóng.</strong> Các thành viên đã được giải
+                        phóng và có thể tham gia hội đồng khác.
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleReopenCouncil}
+                        className="border-slate-400 bg-white text-slate-700 hover:bg-slate-100 shrink-0"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Mở lại
+                      </Button>
+                    </div>
+                    <p className="mt-2 text-slate-600">
+                      Bấm <strong>Mở lại</strong> nếu bạn cần tiếp tục chỉnh sửa (thêm thành viên,
+                      phân công thêm đề tài, sửa EndTime, ...). Hội đồng sẽ chuyển về trạng thái
+                      Bản nháp.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -564,9 +730,11 @@ function StaffCouncilMembersTab({
   const loadLecturers = useCallback(async () => {
     setLoadingLec(true);
     try {
+      // Pass the current councilId so the backend can scope the eligibility
+      // query (currently a no-op for filtering, kept for future use).
       const [allRes, sameDeptRes] = await Promise.all([
-        api.get("/councils/eligible-lecturers?sameDept=false"),
-        api.get("/councils/eligible-lecturers?sameDept=true"),
+        api.get(`/councils/eligible-lecturers?sameDept=false&councilId=${council.id}`),
+        api.get(`/councils/eligible-lecturers?sameDept=true&councilId=${council.id}`),
       ]);
       setLecturersByScope({
         any: allRes.data || [],
@@ -577,7 +745,7 @@ function StaffCouncilMembersTab({
     } finally {
       setLoadingLec(false);
     }
-  }, [showToast]);
+  }, [council.id, showToast]);
 
   useEffect(() => {
     loadLecturers();
@@ -644,12 +812,22 @@ function StaffCouncilMembersTab({
       <div className="space-y-3">
         {ROLE_ROWS.map((row) => {
           const pool = row.sameDeptOnly ? lecturersByScope.sameDept : lecturersByScope.any;
+          // Build the lecturer dropdown options. Previously we disabled any
+          // lecturer who was the primary supervisor of a topic already assigned
+          // to this council (conflict-of-interest). That rule has been
+          // removed: the supervisor is now allowed to grade their own topic,
+          // since over-restricting council membership made it hard to
+          // assemble a quorum and the rule didn't actually improve fairness.
           const options = pool
             .filter((l) => !isAlreadyInCouncil(l.id))
-            .map((l) => ({
-              value: l.id,
-              label: `${l.fullName} — ${l.roleLabel} · ${l.departmentName}${l.majorName ? " · " + l.majorName : ""}`,
-            }));
+            .map((l) => {
+              const baseLabel = `${l.fullName} — ${l.roleLabel} · ${l.departmentName}${l.majorName ? " · " + l.majorName : ""}`;
+              return {
+                value: l.id,
+                label: baseLabel,
+                disabled: false,
+              };
+            });
           const members = memberByRole[row.key];
 
           // Roles that only allow 1 (Chairman / Secretary) hide the dropdown once filled
