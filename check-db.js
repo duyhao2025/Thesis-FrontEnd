@@ -7,7 +7,7 @@ const bcrypt = require("bcryptjs");
     port: 5432,
     database: "ThesisManagement",
     user: "postgres",
-    password: "thang",
+    password: "Admin123",
   });
   await client.connect();
 

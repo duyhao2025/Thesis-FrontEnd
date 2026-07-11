@@ -41,12 +41,15 @@ export interface AvailableTopicsResponse {
 }
 
 // Topic Proposal
+export type TopicProposalStatus = "PENDING" | "LECTURER_APPROVED" | "APPROVED" | "REJECTED";
+
 export interface CreateTopicProposalRequest {
   title: string;
   description: string;
   objective: string;
   scope: string;
   suggestedLecturerId?: string;
+  topicCategoryId?: string;
 }
 
 export interface TopicProposalResponse {
@@ -68,14 +71,21 @@ export interface TopicProposalResponse {
   rejectionReason?: string;
   createdAt: string;
   updatedAt?: string;
+  reason?: string; // For lecturer rejection reason
+  reviewedByName?: string; // For lecturer rejection reason
+  reviewedAt?: string; // For lecturer rejection reason
+  rejectReason?: string; // For HoD rejection reason
 }
 
 // Progress Log
+export type ProgressLogStatus = "Draft" | "Submitted" | "Reviewed" | "Rejected";
+
 export interface CreateProgressLogRequest {
   topicId: string;
   studentId: string;
   content: string;
   completionPercentage: number;
+  Status?: ProgressLogStatus;
 }
 
 export interface UpdateProgressLogRequest {
@@ -105,6 +115,22 @@ export interface ProgressLogFeedbackEntry {
   comment: string;
   lecturerFullName: string;
   createdAt: string;
+}
+
+// Lecturer Feedback
+export interface CreateFeedbackRequest {
+  Comment: string;
+}
+
+export interface FeedbackResponse {
+  id: string;
+  progressLogId: string;
+  lecturerId: string;
+  lecturerFullName: string;
+  Comment: string;
+  status: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 // Periodic Report
@@ -169,22 +195,9 @@ export interface TopicCategoryResponse {
 // Registration Period
 export type RegistrationPeriodStatus = "DRAFT" | "OPEN" | "CLOSED" | "ARCHIVED";
 
-export type SemesterStatus = "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
-
-export interface SemesterResponse {
-  id: string;
-  name: string;
-  year: number;
-  term: number;
-  startDate: string;
-  endDate: string;
-  status: SemesterStatus;
-}
-
 export interface RegistrationPeriodResponse {
   id: string;
-  semesterId?: string;
-  semesterName: string;
+  term: number;
   name: string;
   startDate: string;
   endDate: string;
