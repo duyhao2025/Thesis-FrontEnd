@@ -2,27 +2,38 @@
 
 import React, { useEffect, useState } from "react";
 import api from "@/lib/api";
-import Card from "@/components/ui/Card";
+import Link from "next/link";
 import { CardSkeleton } from "@/components/ui/Skeleton";
+import HeroBanner from "@/components/common/HeroBanner";
+import StatCard from "@/components/common/StatCard";
+import SectionCard from "@/components/common/SectionCard";
+import QuickActions from "@/components/common/QuickActions";
+import Timeline from "@/components/common/Timeline";
+import { getRoleTheme } from "@/lib/roleTheme";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   ClipboardCheck,
   Users,
   BookMarked,
   GraduationCap,
   BookOpen,
+  CalendarRange,
+  ArrowRight,
+  CheckSquare,
 } from "lucide-react";
-import Link from "next/link";
-import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardStats {
   pendingTopics: number;
   councils: number;
   rubrics: number;
   lecturers: number;
+  approvedTopics?: number;
 }
 
 export default function HeadDashboard() {
   const { user } = useAuth();
+  const theme = getRoleTheme(user?.role);
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     pendingTopics: 0,
@@ -30,6 +41,7 @@ export default function HeadDashboard() {
     rubrics: 0,
     lecturers: 0,
   });
+  const [recent, setRecent] = useState<{ id: string; title: string; createdAt?: string }[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -38,58 +50,31 @@ export default function HeadDashboard() {
       api.get("/rubrics").catch(() => ({ data: [] })),
       api.get("/shared/lecturers").catch(() => ({ data: [] })),
     ]).then(([topicsRes, councilsRes, rubricsRes, lecturersRes]) => {
-      const topics = topicsRes.data || [];
+      const topics: { id: string; title: string; createdAt?: string }[] =
+        topicsRes.data || [];
       setStats({
         pendingTopics: topics.length,
         councils: (councilsRes.data || []).length,
         rubrics: (rubricsRes.data || []).length,
         lecturers: (lecturersRes.data || []).length,
       });
+      setRecent(topics.slice(0, 6));
       setLoading(false);
     });
   }, []);
 
-  const cards = [
-    {
-      label: "Đề tài chờ phân công",
-      value: stats.pendingTopics,
-      icon: <BookOpen className="h-6 w-6" />,
-      colorClass: "bg-amber-50 text-amber-600",
-      href: "/head/assignments",
-    },
-    {
-      label: "Hội đồng báo cáo",
-      value: stats.councils,
-      icon: <Users className="h-6 w-6" />,
-      colorClass: "bg-blue-50 text-blue-600",
-      href: "/head/councils",
-    },
-    {
-      label: "Bộ tiêu chí chấm",
-      value: stats.rubrics,
-      icon: <BookMarked className="h-6 w-6" />,
-      colorClass: "bg-violet-50 text-violet-600",
-      href: "/head/rubrics",
-    },
-    {
-      label: "Giảng viên thuộc khoa",
-      value: stats.lecturers,
-      icon: <GraduationCap className="h-6 w-6" />,
-      colorClass: "bg-emerald-50 text-emerald-600",
-      href: "/head/assignments",
-    },
-  ];
-
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Xin chào, {user?.fullName}
-        </h1>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-          {[1, 2, 3, 4, 5].map((i) => (
+        <CardSkeleton />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
             <CardSkeleton key={i} />
           ))}
+        </div>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <CardSkeleton />
+          <CardSkeleton />
         </div>
       </div>
     );
@@ -97,69 +82,155 @@ export default function HeadDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Xin chào, {user?.fullName}
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Trang tổng quan Trưởng bộ môn
-        </p>
+      <HeroBanner
+        fullName={user?.fullName || "Trưởng bộ môn"}
+        roleLabel={theme.roleLabel}
+        subtitle="Điều phối & phê duyệt"
+        email={user?.email}
+        highlight={`${stats.pendingTopics} đề tài chờ`}
+        theme={theme}
+        actions={
+          <>
+            <Link
+              href="/head/assignments"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-white/95 px-3.5 py-2 text-sm font-semibold text-cyan-700 shadow-sm transition hover:bg-white"
+            >
+              <ClipboardCheck className="h-4 w-4" />
+              Phân công giảng viên
+            </Link>
+            <Link
+              href="/head/councils"
+              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/40 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+            >
+              <Users className="h-4 w-4" />
+              Hội đồng
+            </Link>
+          </>
+        }
+      />
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Đề tài chờ phân công"
+          value={stats.pendingTopics}
+          tone="amber"
+          icon={<BookOpen className="h-5 w-5" />}
+          hint="Đề tài đã duyệt cần phân công"
+          href="/head/assignments"
+          sparkline="0,18 12,16 24,15 36,12 48,10 60,9 72,7 84,6 100,5"
+          sparklineColor="#d97706"
+        />
+        <StatCard
+          label="Hội đồng báo cáo"
+          value={stats.councils}
+          tone="blue"
+          icon={<Users className="h-5 w-5" />}
+          hint="Hội đồng đã thành lập"
+          href="/head/councils"
+          sparkline="0,20 12,18 24,16 36,14 48,12 60,10 72,8 84,7 100,6"
+          sparklineColor="#2563eb"
+        />
+        <StatCard
+          label="Bộ tiêu chí chấm"
+          value={stats.rubrics}
+          tone="violet"
+          icon={<BookMarked className="h-5 w-5" />}
+          hint="Tiêu chí đang được áp dụng"
+          href="/head/rubrics"
+          sparkline="0,20 12,18 24,16 36,14 48,12 60,10 72,8 84,6 100,5"
+          sparklineColor="#7c3aed"
+        />
+        <StatCard
+          label="Giảng viên thuộc khoa"
+          value={stats.lecturers}
+          tone="emerald"
+          icon={<GraduationCap className="h-5 w-5" />}
+          hint="Sẵn sàng phân công"
+          href="/head/assignments"
+          sparkline="0,22 12,20 24,18 36,16 48,14 60,12 72,10 84,8 100,6"
+          sparklineColor="#059669"
+        />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {cards.map((stat) => (
-          <Link key={stat.label} href={stat.href}>
-            <Card className="cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg">
-              <div className="flex items-center gap-4">
-                <div className={`rounded-xl p-3 ${stat.colorClass}`}>
-                  {stat.icon}
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {stat.value}
-                  </p>
-                  <p className="text-sm text-gray-500">{stat.label}</p>
-                </div>
-              </div>
-            </Card>
-          </Link>
-        ))}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <SectionCard
+          title="Đề tài mới được duyệt"
+          subtitle="Đề tài mới đang chờ phân công giảng viên"
+          icon={<CheckSquare className="h-4 w-4" />}
+          className="lg:col-span-2"
+          actions={
+            <Link
+              href="/head/assignments"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-700 hover:text-cyan-900"
+            >
+              Xem tất cả <ArrowRight className="h-3 w-3" />
+            </Link>
+          }
+        >
+          {recent.length === 0 ? (
+            <p className="text-sm text-gray-500">Chưa có đề tài nào chờ phân công.</p>
+          ) : (
+            <Timeline
+              items={recent.map((t, idx) => ({
+                id: t.id || idx,
+                title: t.title,
+                status: "active",
+                pill: "Chờ phân công",
+                date: t.createdAt
+                  ? new Date(t.createdAt).toLocaleDateString("vi-VN")
+                  : "—",
+              }))}
+            />
+          )}
+        </SectionCard>
+
+        <SectionCard
+          title="Lịch trình học thuật"
+          subtitle="Các mốc quan trọng trong học kỳ"
+          icon={<CalendarRange className="h-4 w-4" />}
+        >
+          <Timeline
+            items={[
+              { id: 1, title: "Mở đăng ký đề tài", status: "done", pill: "Hoàn thành" },
+              { id: 2, title: "Phân công giảng viên hướng dẫn", status: "active", pill: "Đang tiến hành" },
+              { id: 3, title: "Nộp đề cương chi tiết", status: "todo", pill: "Sắp tới" },
+              { id: 4, title: "Báo cáo giữa kỳ", status: "todo", pill: "Sắp tới" },
+              { id: 5, title: "Bảo vệ đồ án", status: "todo", pill: "Sắp tới" },
+            ]}
+          />
+        </SectionCard>
       </div>
 
-      <Card title="Hành động nhanh">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Link href="/head/assignments">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-amber-200 hover:bg-amber-50">
-              <ClipboardCheck className="mx-auto mb-2 h-6 w-6 text-amber-600" />
-              <p className="text-sm font-medium text-gray-700">
-                Phân công giảng viên
-              </p>
-            </div>
-          </Link>
-          <Link href="/head/assignments">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-amber-200 hover:bg-amber-50">
-              <ClipboardCheck className="mx-auto mb-2 h-6 w-6 text-amber-600" />
-              <p className="text-sm font-medium text-gray-700">
-                Phân công giảng viên
-              </p>
-            </div>
-          </Link>
-          <Link href="/head/councils">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-blue-200 hover:bg-blue-50">
-              <Users className="mx-auto mb-2 h-6 w-6 text-blue-600" />
-              <p className="text-sm font-medium text-gray-700">
-                Quản lý hội đồng
-              </p>
-            </div>
-          </Link>
-          <Link href="/head/rubrics">
-            <div className="rounded-xl border-2 border-transparent p-4 text-center transition-all hover:border-violet-200 hover:bg-violet-50">
-              <BookMarked className="mx-auto mb-2 h-6 w-6 text-violet-600" />
-              <p className="text-sm font-medium text-gray-700">Tiêu chí chấm</p>
-            </div>
-          </Link>
-        </div>
-      </Card>
+      <QuickActions
+        title="Hành động nhanh"
+        subtitle="Truy cập nhanh các module quản lý học thuật"
+        actions={[
+          {
+            href: "/head/assignments",
+            label: "Phân công",
+            icon: <ClipboardCheck />,
+            className: "bg-amber-50 text-amber-600 hover:bg-amber-100",
+          },
+          {
+            href: "/head/councils",
+            label: "Hội đồng",
+            icon: <Users />,
+            className: "bg-blue-50 text-blue-600 hover:bg-blue-100",
+          },
+          {
+            href: "/head/rubrics",
+            label: "Tiêu chí",
+            icon: <BookMarked />,
+            className: "bg-violet-50 text-violet-600 hover:bg-violet-100",
+          },
+          {
+            href: "/head/assignments",
+            label: "Giảng viên",
+            icon: <GraduationCap />,
+            className: "bg-emerald-50 text-emerald-600 hover:bg-emerald-100",
+          },
+        ]}
+      />
     </div>
   );
 }
