@@ -203,9 +203,6 @@ export interface RegistrationPeriodResponse {
   endDate: string;
   status: RegistrationPeriodStatus;
   minGPA: number;
-  maxStudentsPerTopic: number;
-  maxTopicPerLecturer: number;
-  maxStudentPerGroup: number;
   departmentId?: string;
   departmentName?: string;
   majorId?: string;

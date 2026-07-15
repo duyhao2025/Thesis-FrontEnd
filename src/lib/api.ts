@@ -6,6 +6,7 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 });
+console.log(process.env.NEXT_PUBLIC_API_URL);
 
 api.interceptors.request.use(
   (config) => {

@@ -64,6 +64,9 @@ export default function ChangePasswordPage() {
     setLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
+      // DEBUG: kiểm tra token thực sự gửi đi
+      console.log("[DEBUG change-password] token =", token);
+      console.log("[DEBUG change-password] isForced =", isForced);
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5115/api"}/auth/change-password`,
         {
@@ -79,8 +82,11 @@ export default function ChangePasswordPage() {
         }
       );
       const resData = await res.json().catch(() => ({}));
+      // DEBUG: in response chi tiết
+      console.log("[DEBUG change-password] status =", res.status);
+      console.log("[DEBUG change-password] body =", resData);
       if (!res.ok) {
-        setError(resData.message || "Đổi mật khẩu thất bại");
+        setError(resData.message || `HTTP ${res.status}: Đổi mật khẩu thất bại`);
         return;
       }
       setSuccess(true);

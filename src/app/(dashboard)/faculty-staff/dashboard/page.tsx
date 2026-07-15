@@ -64,7 +64,7 @@ export default function FacultyStaffDashboard() {
     return {
       id: p.id,
       title: p.name,
-      description: `${new Date(p.startDate).toLocaleDateString("vi-VN")} – ${new Date(p.endDate).toLocaleDateString("vi-VN")} • ${p.semesterName}`,
+      description: `${new Date(p.startDate).toLocaleDateString("vi-VN")} – ${new Date(p.endDate).toLocaleDateString("vi-VN")} • ${p.name}`,
       status: status as "active" | "done" | "todo",
       pill:
         p.status === "OPEN"
