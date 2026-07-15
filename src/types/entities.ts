@@ -368,11 +368,57 @@ export interface CouncilItem {
   id: string;
   name: string;
   defenseDate: string;
+  /**
+   * Optional end of the council session. After this time, the council is
+   * auto-closed (status = Closed) and its members are freed up to be
+   * invited to other councils. Staff can also override this when confirming
+   * closure via POST /api/councils/{id}/confirm-closure.
+   */
+  endTime?: string | null;
   location: string;
   status: string;
   createdAt: string;
   updatedAt?: string;
   members: CouncilMemberItem[];
+}
+
+/**
+ * Used by HoD-readonly endpoints (`/head/councils`). Members are not
+ * populated on the list response; the detail endpoint does populate them.
+ */
+export interface HoDCouncilListItem {
+  id: string;
+  name: string;
+  status: string;
+  defenseDate: string;
+  endTime?: string | null;
+  location: string;
+  memberCount: number;
+  topicCount: number;
+  createdAt: string;
+}
+
+export interface CouncilHeadDetail {
+  id: string;
+  name: string;
+  status: string;
+  defenseDate: string;
+  endTime?: string | null;
+  location: string;
+  memberCount: number;
+  topicCount: number;
+  createdAt: string;
+}
+
+export interface RubricHeadItem {
+  id: string;
+  name: string;
+  totalWeight: number;
+  isUsed: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  isDeleted?: boolean;
+  criteriaCount?: number;
 }
 
 export interface CouncilTopicItem {

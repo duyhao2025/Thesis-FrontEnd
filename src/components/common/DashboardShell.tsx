@@ -3,10 +3,13 @@
 import React, { useEffect } from "react";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
+import RoleFooter from "./RoleFooter";
 import { useAuth } from "@/contexts/AuthContext";
+import { getRoleTheme } from "@/lib/roleTheme";
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const theme = getRoleTheme(user?.role);
 
   useEffect(() => {
     if (user?.role) {
@@ -23,6 +26,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         <Header />
         <main className="flex-1 overflow-y-auto p-6">
           {children}
+          <RoleFooter
+            theme={theme}
+            fullName={user?.fullName}
+            email={user?.email}
+          />
         </main>
       </div>
     </div>

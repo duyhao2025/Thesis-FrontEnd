@@ -1,3 +1,11 @@
+"use client";
+
+import ProtectedRoute from "@/components/common/ProtectedRoute";
+
 export default function HeadLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return (
+    <ProtectedRoute allowedRoles={["HeadOfDepartment"]}>
+      {children}
+    </ProtectedRoute>
+  );
 }

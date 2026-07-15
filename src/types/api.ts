@@ -39,6 +39,48 @@ export interface RefreshTokenResponse {
   expiresIn: number;
 }
 
+// ============================================================
+// My Profile — user self-service
+// ============================================================
+export interface MyProfileResponse {
+  userId: string;
+  fullName: string;
+  email: string;
+  userCode?: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+  // Personal email channel (Students only)
+  personalEmail?: string;
+  isEmailVerified: boolean;
+  departmentId?: string;
+  departmentName?: string;
+  departmentCode?: string;
+  majorId?: string;
+  majorName?: string;
+  majorCode?: string;
+  statusLabel: string;
+}
+
+// ============================================================
+// Personal email verification
+// ============================================================
+export interface SendVerificationRequest {
+  email: string;
+}
+
+export interface SendVerificationResponse {
+  message: string;
+  retryAfterSeconds: number;
+}
+
+export interface ConfirmVerificationResponse {
+  success: boolean;
+  message: string;
+  personalEmail?: string;
+}
+
 export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;

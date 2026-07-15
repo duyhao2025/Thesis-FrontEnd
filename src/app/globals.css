@@ -48,9 +48,8 @@
   --role-card-header-border: #f1f5f9;
 }
 
-/* LECTURER / HEAD OF DEPARTMENT: Teal + violet — sang trọng */
-[data-theme="Lecturer"],
-[data-theme="HeadOfDepartment"] {
+/* LECTURER: Teal + indigo — sang trọng */
+[data-theme="Lecturer"] {
   --role-primary: #0d9488;
   --role-primary-hover: #0f766e;
   --role-accent: #5eead4;
@@ -58,6 +57,20 @@
   --role-sidebar-text: #e0e7ff;
   --role-sidebar-active-bg: #312e81;
   --role-sidebar-active-text: #c7d2fe;
+  --role-header-bg: #ffffff;
+  --role-card-border: #e2e8f0;
+  --role-card-header-border: #f1f5f9;
+}
+
+/* HEAD OF DEPARTMENT: Cyan + slate — điều hành học thuật */
+[data-theme="HeadOfDepartment"] {
+  --role-primary: #0891b2;
+  --role-primary-hover: #0e7490;
+  --role-accent: #67e8f9;
+  --role-sidebar-bg: #334155;
+  --role-sidebar-text: #f1f5f9;
+  --role-sidebar-active-bg: #475569;
+  --role-sidebar-active-text: #cffafe;
   --role-header-bg: #ffffff;
   --role-card-border: #e2e8f0;
   --role-card-header-border: #f1f5f9;
@@ -96,6 +109,68 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Soft, role-aware page background so the layout feels less flat */
+body {
+  background:
+    radial-gradient(1200px 600px at 0% 0%, rgba(99, 102, 241, 0.06), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(16, 185, 129, 0.05), transparent 60%),
+    var(--background);
+}
+
+[data-theme="Admin"] body,
+body[data-theme="Admin"] {
+  background:
+    radial-gradient(1100px 500px at 0% 0%, rgba(99, 102, 241, 0.08), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(139, 92, 246, 0.06), transparent 60%),
+    #f8fafc;
+}
+
+[data-theme="Lecturer"] body,
+body[data-theme="Lecturer"] {
+  background:
+    radial-gradient(1100px 500px at 0% 0%, rgba(20, 184, 166, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(59, 130, 246, 0.06), transparent 60%),
+    #f8fafc;
+}
+
+[data-theme="HeadOfDepartment"] body,
+body[data-theme="HeadOfDepartment"] {
+  background:
+    radial-gradient(1100px 500px at 0% 0%, rgba(8, 145, 178, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(2, 132, 199, 0.06), transparent 60%),
+    #f8fafc;
+}
+
+[data-theme="FacultyStaff"] body,
+body[data-theme="FacultyStaff"] {
+  background:
+    radial-gradient(1100px 500px at 0% 0%, rgba(217, 119, 6, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(249, 115, 22, 0.06), transparent 60%),
+    #fafaf9;
+}
+
+[data-theme="Student"] body,
+body[data-theme="Student"] {
+  background:
+    radial-gradient(1100px 500px at 0% 0%, rgba(5, 150, 105, 0.10), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(20, 184, 166, 0.06), transparent 60%),
+    #f0fdf4;
+}
+
+/* Animated decorative utility used on hero banners */
+.role-orbs::before,
+.role-orbs::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* Hide scrollbar nicely on overflow containers */
+.scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+.scrollbar-thin::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 9999px; }
+.scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
 
 /* Role-aware global classes */
 .role-primary { color: var(--role-primary); }
